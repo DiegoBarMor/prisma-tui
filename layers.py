@@ -13,11 +13,12 @@ class TUI(Prisma):
     def on_update(self):
         shape = (curses.LINES, curses.COLS)
         bg = Layer()
-        bg.addchattr('.', curses.A_BOLD)
+        bg.chattr(1, '.', curses.A_BOLD)
         bg.arr = ~bg.arr
 
-        fg = Layer.init_from_img("icon.npy")
-        fg.addchattr('*', curses.color_pair(2))
+        fg = Layer()
+        fg.addimg("icon.npy", 2, 3)
+        fg.chattr(1, '*', curses.color_pair(2))
 
         self.addlayer(bg)
         self.addlayer(fg)

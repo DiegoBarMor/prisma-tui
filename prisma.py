@@ -5,30 +5,26 @@ from collections.abc import Callable
 # //////////////////////////////////////////////////////////////////////////////
 class Layer:
     def __init__(self, dtype = bool):
-        self._chars = []
-        self._attrs = []
         self.arr    = np.zeros((curses.LINES, curses.COLS), dtype = dtype)
-        self._dtype = self.arr.dtype # ensures _dtype is correct
         
-    @classmethod
-    def init_from_img(cls, img, dtype = bool):
-        obj = cls(dtype)
-        obj.addimg(img)
-        return obj
+        self._chars = ['' for _ in range(8*self.arr.itemsize)]
+        self._attrs = [curses.A_NORMAL for _ in self._chars]
+        self._dtype = self.arr.dtype # ensures _dtype is correct
 
-    def addimg(self, img):       
+    def addimg(self, img, y = 0, x = 0):       
         arr = np.load(img).astype(self._dtype) \
             if isinstance(img, str) else img
     
-        w,h = arr.shape
-        self.arr[:w, :h] = arr[:curses.LINES, :curses.COLS]
+        h,w = arr.shape
+        imgh = max(h, curses.LINES)
+        imgw = max(w, curses.COLS)
+        # imgh = min(h, curses.LINES)
+        # imgw = min(w, curses.COLS)
+        self.arr[y:y+h, x:x+w] = arr[:imgh, :imgw]
 
-        # self._arr = arr
-
-    def addchattr(self, char = '', attr = curses.A_NORMAL):
-        # [TODO] init _chars and _attrs woth a fixed length, depending on _dtype, and assign to increaaing indices
-        self._chars.append(char)    
-        self._attrs.append(attr)
+    def chattr(self, idx, char = '', attr = curses.A_NORMAL):
+        self._chars[idx] = char
+        self._attrs[idx] = attr
 
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -41,6 +37,7 @@ class Prisma:
 
         self._ignore_outbounds = ignore_outbounds
         self._running = False
+        # self._wins = []
         self.char = None
         self.y = 0
         self.x = 0
@@ -68,6 +65,7 @@ class Prisma:
     def run(self):
         try:
             self.stdscr = curses.initscr()
+            # self._wins.append(self.stdscr)
             curses.noecho()
             curses.cbreak()
             self.stdscr.keypad(1)
@@ -91,8 +89,10 @@ class Prisma:
             self.y = 0
             self.x = 0
             curses.update_lines_cols()
+            # map(lambda win: win.erase(), self._wins)
             self.stdscr.erase()
             self.on_update()
+            # map(lambda win: win.refresh(), self._wins)
             self.stdscr.refresh()
             self.char = self.stdscr.getch()
             if self.kill_when(): self.kill()
@@ -110,6 +110,12 @@ class Prisma:
             self._nap_ms = int(1000 / fps)
             self._wait = self.wait
 
+    # --------------------------------------------------------------------------
+    # def newwin(self, y, x):
+        # win = curses.newwin(y, x)
+        # self._wins.append(win)
+        # return win
+    
     # --------------------------------------------------------------------------
     def safe_addstr(self, s, attr):
         args = lambda: (self.y, self.x, s) if attr is None \
@@ -141,10 +147,6 @@ class Prisma:
         self.safe_addstr(s, attr)
 
     # --------------------------------------------------------------------------
-    def npstr(self, arr, char, attr = None, align = None):
-        pass # [WIP]
-
-    # --------------------------------------------------------------------------
     def addlayer(self, layer):
         w,h = layer.arr.shape
 
@@ -155,10 +157,10 @@ class Prisma:
         idxs = np.arange(len(borders))[borders]
 
         for i0,i1 in zip(idxs[0::2], idxs[1::2]):
-            s = (i1-i0)*layer._chars[0]
+            s = (i1-i0)*layer._chars[1] # [TODO] hardcoded
             self.y = i0 // h
             self.x = i0 % h
-            self.safe_addstr(s, layer._attrs[0])
+            self.safe_addstr(s, layer._attrs[1])
 
 
 # //////////////////////////////////////////////////////////////////////////////
