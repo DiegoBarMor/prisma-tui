@@ -1,7 +1,7 @@
 import curses
 import numpy as np
 
-from prisma import Prisma, Align
+from prisma import Prisma, Layer
 
 # //////////////////////////////////////////////////////////////////////////////
 class TUI(Prisma):
@@ -12,19 +12,18 @@ class TUI(Prisma):
 
     def on_update(self):
         shape = (curses.LINES, curses.COLS)
-        bg = np.ones(shape, dtype = bool)
-        fg = np.zeros(shape, dtype = bool)
+        bg = Layer()
+        bg.addchattr('.', curses.A_BOLD)
+        bg.arr = ~bg.arr
 
-        img = ~np.load("icon.npy")
+        fg = Layer.init_from_img("icon.npy")
+        fg.addchattr('*', curses.color_pair(2))
 
-        w,h = img.shape
-        fg[:w, :h] = img[:curses.LINES, :curses.COLS]
+        self.addlayer(bg)
+        self.addlayer(fg)
 
-        self.addlayer(bg, '.', curses.A_BOLD)
-        self.addlayer(fg, '*', curses.color_pair(2))
-
-        self.pystr("Press F1 to exit", curses.color_pair(1), Align.YBOTTOM | Align.XLEFT)
-        self.pystr(f"{curses.LINES} {curses.COLS}", curses.A_REVERSE, Align.YTOP | Align.XRIGHT)
+        self.pystr("Press F1 to exit", 'b', 'l', curses.color_pair(1))
+        self.pystr(f"{curses.LINES} {curses.COLS}", 't', 'r', curses.A_REVERSE)
 
 
     def kill_when(self):
