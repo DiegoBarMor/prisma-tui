@@ -1,10 +1,11 @@
 import curses
 import numpy as np
 
-from prisma import Prisma, Layer
+from prisma.terminal import Terminal
+from prisma.layer import Layer
 
 # //////////////////////////////////////////////////////////////////////////////
-class TUI(Prisma):
+class TUI(Terminal):
     def on_init(self):
         curses.curs_set(False)
         curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_CYAN)
