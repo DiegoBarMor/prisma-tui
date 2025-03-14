@@ -1,4 +1,5 @@
 import curses
+import repo_root
 
 from prisma.terminal import Terminal
 

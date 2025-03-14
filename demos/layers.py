@@ -1,5 +1,5 @@
 import curses
-import numpy as np
+import repo_root
 
 from prisma.terminal import Terminal
 from prisma.layer import Layer
@@ -12,13 +12,12 @@ class TUI(Terminal):
         curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_YELLOW)
 
     def on_update(self):
-        shape = (curses.LINES, curses.COLS)
         bg = Layer()
         bg.chattr(1, '.', curses.A_BOLD)
         bg.arr = ~bg.arr
 
         fg = Layer()
-        fg.addimg("icon.npy", 2, 3)
+        fg.addimg("demos/icon.npy", 2, 3)
         fg.chattr(1, '*', curses.color_pair(2))
 
         self.addlayer(bg)
