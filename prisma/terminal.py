@@ -1,5 +1,4 @@
 import curses
-import numpy as np
 from collections.abc import Callable
 
 from prisma.section import Section
@@ -13,8 +12,8 @@ class Terminal:
         self._wait: Callable
         self.set_fps(fps)
 
-        self._running = False
         self._sects = []
+        self._running = False
         self.char = None
 
         self.stdscr: curses.window
@@ -40,8 +39,9 @@ class Terminal:
     def run(self):
         try:
             self.stdscr = curses.initscr()
-            self.stdsect = Section(self.stdscr)
-            self.addsect(self.stdsect)
+            self.stdsect = self.addsect(
+                Section(self.stdscr, hauto=True, wauto=True)
+            )
             curses.noecho()
             curses.cbreak()
             self.stdscr.keypad(1)
@@ -62,20 +62,16 @@ class Terminal:
         self.on_init()
         self._running = True
         while self._running:
-            self.y = 0
-            self.x = 0
             curses.update_lines_cols()
-            # map(lambda sect: sect.erase(), self._sects)
-            for sect in self._sects: sect.erase()
+            for sect in self._sects: sect.reset()
             self.on_update()
-            # map(lambda sect: sect.draw(), self._sects)
             for sect in self._sects: sect.draw()
             self.char = self.stdscr.getch()
             if self.kill_when(): self.kill()
             self._wait()
         return self.on_end()
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
     def set_fps(self, fps):
         if fps is None:
             self._no_delay = False
@@ -87,8 +83,21 @@ class Terminal:
             self._wait = lambda: curses.napm(self._nap_ms)
 
     # --------------------------------------------------------------------------
+    def get_size(self):
+        # return curses.LINES, curses.COLS
+        return self.stdscr.getmaxyx()
+
+    # --------------------------------------------------------------------------
+    def resize(self, h, w):
+        print(f"\x1b[8;{h};{w}t")
+        for sect in self._sects:
+            sect.adjust_size()
+
+
+    # --------------------------------------------------------------------------
     def addsect(self, section: Section):
         self._sects.append(section)
+        return section
 
     # --------------------------------------------------------------------------
     def pystr(self, *args, **kws): self.stdsect.pystr(*args, **kws)
