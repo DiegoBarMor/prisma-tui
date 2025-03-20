@@ -1,6 +1,4 @@
 import curses
-import repo_root
-
 
 def log(*x, init = False):
     path_log = "log.txt"

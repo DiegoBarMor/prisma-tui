@@ -1,7 +1,7 @@
 import curses
 from collections.abc import Callable
 
-from prisma.section import Section
+from prisma.section import Section, RootSection
 
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -16,7 +16,7 @@ class Terminal:
 
         self.char = None
         self.stdscr: curses.window
-        self.root: Section
+        self.root: RootSection
         self.h = 0
         self.w = 0
 
@@ -46,7 +46,7 @@ class Terminal:
             try: curses.start_color()
             except: pass
 
-            self.root = Section(self.stdscr)
+            self.root = RootSection(self.stdscr)
             return self.main()
 
         finally:
@@ -59,19 +59,19 @@ class Terminal:
     def main(self):
         self.on_init()
         self.stdscr.nodelay(self._no_delay)
-        
+
         self._running = True
         while self._running:
             self._handle_resize()
-            
-            self.root.reset()
+
+            self.root.erase()
             self.on_update()
             self.root.draw()
 
             self.char = self.stdscr.getch()
             if self.kill_when(): self.kill()
             self._wait()
-            
+
         return self.on_end()
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -89,11 +89,11 @@ class Terminal:
     def _handle_resize(self):
         curses.update_lines_cols()
         h, w = curses.LINES, curses.COLS
-        
+
         if (self.h == h) and (self.w == w): return
-        
+
         self.h = h; self.w = w
-        self.root.set_size(h, w)        
+        self.root.set_size(h, w)
 
     # --------------------------------------------------------------------------
     def set_size(self, h, w):
@@ -101,8 +101,6 @@ class Terminal:
         self._handle_resize()
 
     # --------------------------------------------------------------------------
-    # --------------------------------------------------------------------------
-    def get_size(self):  return self.root.get_size()
     def pystr(self, *args, **kws): self.root.pystr(*args, **kws)
     def addlayer(self, *args, **kws): self.root.addlayer(*args, **kws)
 

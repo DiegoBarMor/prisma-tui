@@ -11,7 +11,7 @@ class TUI(Terminal):
 
     def on_update(self):
         self.pystr(f"{curses.LINES} lines, {curses.COLS} cols", 'c', 'c', curses.A_REVERSE)
-        self.pystr(f"Key pressed: {self.char}", self.stdsect.ystr + 1, 'c', curses.A_BOLD)
+        self.pystr(f"Key pressed: {self.char}", self.root.ystr + 1, 'c', curses.A_BOLD)
         self.pystr("Press F1 to exit", 'b', 'l', curses.color_pair(1))
 
     def kill_when(self):
