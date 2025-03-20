@@ -12,12 +12,13 @@ class Terminal:
         self._wait: Callable
         self.set_fps(fps)
 
-        self._sects = []
         self._running = False
-        self.char = None
 
+        self.char = None
         self.stdscr: curses.window
-        self.stdsect: Section
+        self.root: Section
+        self.h = 0
+        self.w = 0
 
     # --------------------------------------------------------------------------
     def on_init(self):
@@ -30,7 +31,7 @@ class Terminal:
         return # override!
 
     def kill_when(self):
-        return True # override!
+        return False # override!
 
     def kill(self):
         self._running = False
@@ -39,39 +40,41 @@ class Terminal:
     def run(self):
         try:
             self.stdscr = curses.initscr()
-            self.stdsect = self.addsect(
-                Section(self.stdscr, hauto=True, wauto=True)
-            )
-            curses.noecho()
-            curses.cbreak()
+            curses.noecho(); curses.cbreak()
             self.stdscr.keypad(1)
+
             try: curses.start_color()
             except: pass
+
+            self.root = Section(self.stdscr)
             return self.main()
 
         finally:
             if "stdscr" not in self.__dict__: return
             self.stdscr.keypad(0)
-            curses.echo()
-            curses.nocbreak()
+            curses.echo(); curses.nocbreak()
             curses.endwin()
 
     # --------------------------------------------------------------------------
     def main(self):
-        self.stdscr.nodelay(self._no_delay)
         self.on_init()
+        self.stdscr.nodelay(self._no_delay)
+        
         self._running = True
         while self._running:
-            curses.update_lines_cols()
-            for sect in self._sects: sect.reset()
+            self._handle_resize()
+            
+            self.root.reset()
             self.on_update()
-            for sect in self._sects: sect.draw()
+            self.root.draw()
+
             self.char = self.stdscr.getch()
             if self.kill_when(): self.kill()
             self._wait()
+            
         return self.on_end()
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++   
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def set_fps(self, fps):
         if fps is None:
             self._no_delay = False
@@ -83,25 +86,25 @@ class Terminal:
             self._wait = lambda: curses.napm(self._nap_ms)
 
     # --------------------------------------------------------------------------
-    def get_size(self):
-        # return curses.LINES, curses.COLS
-        return self.stdscr.getmaxyx()
+    def _handle_resize(self):
+        curses.update_lines_cols()
+        h, w = curses.LINES, curses.COLS
+        
+        if (self.h == h) and (self.w == w): return
+        
+        self.h = h; self.w = w
+        self.root.set_size(h, w)        
 
     # --------------------------------------------------------------------------
-    def resize(self, h, w):
+    def set_size(self, h, w):
         print(f"\x1b[8;{h};{w}t")
-        for sect in self._sects:
-            sect.adjust_size()
-
+        self._handle_resize()
 
     # --------------------------------------------------------------------------
-    def addsect(self, section: Section):
-        self._sects.append(section)
-        return section
-
     # --------------------------------------------------------------------------
-    def pystr(self, *args, **kws): self.stdsect.pystr(*args, **kws)
-    def addlayer(self, *args, **kws): self.stdsect.addlayer(*args, **kws)
+    def get_size(self):  return self.root.get_size()
+    def pystr(self, *args, **kws): self.root.pystr(*args, **kws)
+    def addlayer(self, *args, **kws): self.root.addlayer(*args, **kws)
 
 
 # //////////////////////////////////////////////////////////////////////////////

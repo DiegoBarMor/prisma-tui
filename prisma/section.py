@@ -1,52 +1,107 @@
 import curses
 import numpy as np
 
+from dataclasses import dataclass
+
+
+@dataclass
+class _Child:
+    sect: Section
+    hrel: float
+    wrel: float
+    yrel: float
+    xrel: float
+
+
 # //////////////////////////////////////////////////////////////////////////////
 class Section:
-    def __init__(self, window: curses.window, hauto = True, wauto = True):
+    def __init__(self, window: curses.window):
         self._win = window
-        self._hauto = hauto
-        self._wauto = wauto
-        self._orig_h, self._orig_w = window.getmaxyx()
-        self.h = self._orig_h
-        self.w = self._orig_w
+        
+        # self.h : int; self.w: int
+        # self.y : int; self.x: int
+        # self.update_hwyx()
+        self.h, self.w = window.getmaxyx()
+        self.y, self.x = window.getbegyx()
+  
+        self._children = {}
+        
         self.ystr = 0
         self.xstr = 0
-        self.ypos, self.xpos = window.getbegyx()
         
 
     @classmethod
-    def newwin(cls, h = 0, w = 0, y = 0, x = 0):
-        hauto = not h
-        wauto = not w
-        if hauto: h = curses.LINES - y
-        if wauto: w = curses.COLS  - x
+    def newwin(cls, h, w, y, x):
         win = curses.newwin(h, w, y, x)
-        return cls(win, hauto, wauto)
+        return cls(win)
+
+    def addchild(self, name, section, h, w, y, x):
+        assert len(name) == 1
+        self._children[name] = _Child(section, h, w, y, x)
+        return section
+
 
     # --------------------------------------------------------------------------
-    def reset(self):
+    def mosaic(self, layout: str):
+        pass
+
+    # --------------------------------------------------------------------------
+    def update_hwyx(self):
+        self.h, self.w = window.getmaxyx()
+        self.y, self.x = window.getbegyx()
+
+    
+    # --------------------------------------------------------------------------
+    def erase(self):        
         self.ystr = 0
         self.xstr = 0
-        self.adjust_size()
-        self.erase()
+              
+        self._win.erase()      
+        for child in self._children.values():
+            child.sect.erase()
+        
+    def draw(self): 
+        self._win.refresh()
+        for child in self._children.values():
+            child.sect.draw()
+
+
+    
 
     # --------------------------------------------------------------------------
-    def adjust_size(self):      
-        self.h = curses.LINES - self.ypos if self._hauto \
-            else min(self._orig_h, curses.LINES)
-        self.w = curses.COLS  - self.xpos if self._wauto \
-            else min(self._orig_w, curses.COLS)
-        self._win.resize(self.h, self.w)
+    def set_size(self, h, w):
+        self.h = h
+        self.w = w
+
+
+        self._win.resize(h, w)
+        for child in self._children.values():
+            hchild = round(child.hrel * h)
+            wchild = round(child.wrel * w)
+            child.sect.set_size(hchild, wchild)
+            
+            ychild = round(child.yrel * h)
+            xchild = round(child.xrel * w)
+            # child.sect.set_pos(ychild, xchild)
+
+                                  
+
+    # --------------------------------------------------------------------------
+    # def set_pos(self, y, x):      
+    #     for child in self._children.values():            
+    #         pass        
+
+
+        
 
     # --------------------------------------------------------------------------
     def safe_addstr(self, s, attr = curses.A_NORMAL):
-        args = (self.ystr, self.xstr, s) if attr is None \
-            else (self.ystr, self.xstr, s, attr)
-
         ### ignore out of bounds error
-        try: self._win.addstr(*args)
+        try: self._win.addstr(
+            self.ystr, self.xstr, s, attr
+        )
         except curses.error: pass
+
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def pystr(self, s, y = None, x = None, attr = curses.A_NORMAL):
@@ -85,8 +140,8 @@ class Section:
         return layer
 
     # --------------------------------------------------------------------------
-    def erase(self): self._win.erase()
-    def draw(self): self._win.refresh()
+
+    
     def border(self, *args): self._win.border(*args)
 
 

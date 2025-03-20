@@ -1,6 +1,6 @@
 import curses
-import repo_root
 
+import os, sys; sys.path.insert(0, os.getcwd()) # allow imports from root folder
 from prisma.terminal import Terminal
 from prisma.layer import Layer
 
