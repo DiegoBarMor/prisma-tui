@@ -65,12 +65,13 @@ if __name__ == "__main__":
 
     for k, v in layouts.items():
         print("------------------", k)
+        print(v); print()
         try:
-            completed = mosaic(v)
+            hwyx_data = mosaic(v)
         except ValueError as e:
             print("XXX", e)
         else:
-            if completed: print("... Valid layout")
+            print(*sorted(hwyx_data.items()), sep = '\n')
         print()
 
 

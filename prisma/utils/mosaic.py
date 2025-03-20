@@ -29,49 +29,51 @@ def is_sequential(iterable):
 
 
 # ------------------------------------------------------------------------------
-def mosaic(layout):
-    print(layout); print()
-
+def mosaic(layout, divider = '\n'):
     if not layout:
         warnings.warn("Empty layout")
-        return False
+        return {}
 
-    rows = layout.split('\n')
+    rows = layout.split(divider)
     cols = tuple(zip(*rows))
 
-    row_lenghts = set(map(len, rows))
-    if len(row_lenghts) != 1:
+    row_lenghts = map(len, rows)
+    if len(set(row_lenghts)) != 1:
         raise ValueError("Not all mosaic rows have the same lenght.")
 
-    xidxs = tuple(range(len(row)) for row in rows)
-    yidxs = tuple(range(len(col)) for col in cols)
-
+    row_idxs = tuple(range(len(row)) for row in rows)
+    col_idxs = tuple(range(len(col)) for col in cols)
 
     chars = set(layout)
-    if '\n' in chars: chars.remove('\n')
+    if divider in chars: chars.remove(divider)
 
+    h_mosaic = len(rows)
+    w_mosaic = len(cols)
+
+    data = {}
     for char in chars:
-        masked_xidxs = apply_mask(xidxs, rows, char)
-        masked_yidxs = apply_mask(yidxs, cols, char)
+        masked_row_idxs = apply_mask(row_idxs, rows, char)
+        masked_col_idxs = apply_mask(col_idxs, cols, char)
 
-        if not all_elements_equal(masked_xidxs):
+        if not all_elements_equal(masked_row_idxs):
             raise ValueError(f"Not all rows for char '{char}' have the same length.")
 
-        if not all_elements_equal(masked_yidxs):
+        if not all_elements_equal(masked_col_idxs):
             raise ValueError(f"Not all columns for char '{char}' have the same length.")
 
-        if not is_sequential(masked_xidxs[0]):
+        if not is_sequential(masked_row_idxs[0]):
             raise ValueError(f"Rows of char '{char}' are interrupted.")
 
-        if not is_sequential(masked_yidxs[0]):
+        if not is_sequential(masked_col_idxs[0]):
             raise ValueError(f"Columns of char '{char}' are interrupted.")
 
-        print(char, "masked_xidxs:", masked_xidxs)
-        print(char, "masked_yidxs:", masked_yidxs)
+        y_char = masked_col_idxs[0][0] / h_mosaic
+        x_char = masked_row_idxs[0][0] / w_mosaic
+        h_char = len(masked_col_idxs[0]) / h_mosaic
+        w_char = len(masked_row_idxs[0]) / w_mosaic
+        data[char] = (h_char, w_char, y_char, x_char)
 
-    return True
-
-        # print(*zip(rows, mask(rows, 'a'))    , sep="\n")
+    return data
 
 
 # ------------------------------------------------------------------------------
