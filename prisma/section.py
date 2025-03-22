@@ -3,10 +3,14 @@ import numpy as np
 
 from prisma.utils.mosaic import mosaic as _mosaic
 
+from prisma.debug import Debug; d = Debug("out.log")
+
+
 # //////////////////////////////////////////////////////////////////////////////
 class Section:
-    def __init__(self, rel_hwyx, name = '', parent = None):
-        self._rel_hwyx = rel_hwyx
+    def __init__(self, hwyx, name = '', parent = None, is_relative = False):
+        self._hwyx = hwyx
+        self._is_relative = is_relative
         self._parent: Section = parent
         self._children: dict[str, Section] = {}
 
@@ -19,6 +23,10 @@ class Section:
 
         self.ystr = 0
         self.xstr = 0
+
+    # --------------------------------------------------------------------------
+    def __repr__(self):
+        return f"<Section '{self.name}'>"
 
     # --------------------------------------------------------------------------
     def set_parent(self, parent):
@@ -37,20 +45,37 @@ class Section:
     # --------------------------------------------------------------------------
     def mosaic(self, layout: str, divider = '\n'):
         data_hwyx = _mosaic(layout, divider)
-        for char, rel_hwyx in data_hwyx.items():
-            self.add_child(char, Section(rel_hwyx, name = char))
+        for char, hwyx in data_hwyx.items():
+            self.add_child(char, Section(hwyx, name = char, is_relative = True))
 
     # --------------------------------------------------------------------------
     def update_hwyx(self):
         if self._parent is None:
             self.h, self.w = curses.LINES, curses.COLS
             self.y, self.x = 0, 0
-        else:
-            relh, relw, rely, relx = self._rel_hwyx
-            self.h = round(relh * self._parent.h)
-            self.w = round(relw * self._parent.w)
+            return
+            
+        if self._is_relative:
+            relh, relw, rely, relx = self._hwyx
+            self.h = round(relh * self._parent.h)# - 1
+            self.w = round(relw * self._parent.w)# - 1
             self.y = round(rely * self._parent.h)
             self.x = round(relx * self._parent.w)
+        else:
+            self.h, self.w, self.y, self.x = self._hwyx
+            self.h = min(self.h, self._parent.h)
+            self.w = min(self.w, self._parent.w)
+
+
+        y_outbounds = (self.y + self.h) - self._parent.h
+        x_outbounds = (self.x + self.w) - self._parent.w
+
+        d.log("@", y_outbounds)
+
+        if y_outbounds > 0: self.y -= y_outbounds
+        if x_outbounds > 0: self.x -= x_outbounds
+
+
 
     # --------------------------------------------------------------------------
     def erase(self):
@@ -74,9 +99,16 @@ class Section:
 
     # --------------------------------------------------------------------------
     def adjust_size_pos(self):
+        d.log(f"ADJUST {self.name} (parent {self._parent})")
+        d.log(f"0) y={self.y} x={self.x} h={self.h} w={self.w}")
         self.update_hwyx()
-        self._win.mvwin(self.y, self.x)
+        d.log(f"1) y={self.y} x={self.x} h={self.h} w={self.w}")
+
+        # try: self._win.mvwin(self.y, self.x)
+        # except curses.error: pass
+
         self._win.resize(self.h, self.w)
+        self._win.mvwin(self.y, self.x)
         for child in self._children.values():
             child.adjust_size_pos()
 

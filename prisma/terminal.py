@@ -1,7 +1,9 @@
 import curses
 from collections.abc import Callable
 
-from prisma.section import Section, RootSection
+from prisma.section import RootSection
+
+from prisma.debug import Debug; d = Debug("out.log")
 
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -93,7 +95,9 @@ class Terminal:
         if (self.h == h) and (self.w == w): return
 
         self.h = h; self.w = w
+        d.log("RESIZE")
         self.root.set_size(h, w)
+        d.log("END")
 
     # --------------------------------------------------------------------------
     def set_size(self, h, w):
