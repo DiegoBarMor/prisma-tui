@@ -16,6 +16,8 @@ class Layer:
         arr = np.load(img).astype(self._dtype) \
             if isinstance(img, str) else img
 
+        arr = ~arr # [WIP] fix this
+
         h,w = arr.shape
         imgh = max(h, self.h)
         imgw = max(w, self.w)

@@ -12,15 +12,18 @@ class TUI(Terminal):
         curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_YELLOW)
 
     def on_update(self):
-        bg = Layer()
-        bg.chattr(1, '.', curses.A_BOLD)
+        shape = (curses.LINES, curses.COLS)
+
+        bg = Layer(shape)
+        bg.setchattr(1, '.', curses.A_BOLD)
         bg.arr = ~bg.arr
 
-        fg = Layer()
-        fg.addimg("demos/icon.npy", 2, 3)
-        fg.chattr(1, '*', curses.color_pair(2))
+        fg = Layer(shape)
+        fg.addimg("demos/data/cat.npy", 2, 3)
+        fg.setchattr(1, '*', curses.color_pair(2))
 
-        self.addlayer(bg)
+
+        # self.addlayer(bg)
         self.addlayer(fg)
 
         self.pystr("Press F1 to exit", 'b', 'l', curses.color_pair(1))

@@ -1,6 +1,11 @@
+import sys
 import numpy as np
 from PIL import Image
+from pathlib import Path
 
-img = Image.open("icon.png")
+path_img = Path(sys.argv[1])
+path_npy = path_img.with_suffix(".npy")
+
+img = Image.open(path_img)
 arr = np.array(img)
-np.save("icon.npy", arr.astype(bool))
+np.save(path_npy, arr.astype(bool))
