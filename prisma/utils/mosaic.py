@@ -1,5 +1,7 @@
 import warnings
 
+from collections import OrderedDict
+
 # ------------------------------------------------------------------------------
 def apply_mask(idxs, mat, char):
     mat_out = tuple(map(
@@ -50,8 +52,8 @@ def mosaic(layout, divider = '\n'):
     h_mosaic = len(rows)
     w_mosaic = len(cols)
 
-    data = {}
-    for char in chars:
+    data = OrderedDict()
+    for char in sorted(chars):
         masked_row_idxs = apply_mask(row_idxs, rows, char)
         masked_col_idxs = apply_mask(col_idxs, cols, char)
 

@@ -1,18 +1,18 @@
 import curses
 import numpy as np
+from collections import OrderedDict
 
 from prisma.utils.mosaic import mosaic as _mosaic
 
-from prisma.debug import Debug; d = Debug("out.log")
+from prisma.debug import Debug; d = Debug("log.log")
 
 
 # //////////////////////////////////////////////////////////////////////////////
 class Section:
-    def __init__(self, hwyx, name = '', parent = None, is_relative = False):
+    def __init__(self, hwyx, name = '', parent = None):
         self._hwyx = hwyx
-        self._is_relative = is_relative
         self._parent: Section = parent
-        self._children: dict[str, Section] = {}
+        self._children: OrderedDict[str, Section] = OrderedDict()
 
         self.name = name
         self.h: int; self.w: int
@@ -33,8 +33,8 @@ class Section:
         self._parent = parent
 
     # --------------------------------------------------------------------------
-    def add_child(self, name, section: "Section"):
-        self._children[name] = section
+    def add_child(self, section: "Section"):
+        self._children[section.name] = section
         section.set_parent(self)
         return section
 
@@ -46,7 +46,7 @@ class Section:
     def mosaic(self, layout: str, divider = '\n'):
         data_hwyx = _mosaic(layout, divider)
         for char, hwyx in data_hwyx.items():
-            self.add_child(char, Section(hwyx, name = char, is_relative = True))
+            self.add_child(Section(hwyx, name = char))
 
     # --------------------------------------------------------------------------
     def update_hwyx(self):
@@ -54,27 +54,38 @@ class Section:
             self.h, self.w = curses.LINES, curses.COLS
             self.y, self.x = 0, 0
             return
-            
-        if self._is_relative:
-            relh, relw, rely, relx = self._hwyx
-            self.h = round(relh * self._parent.h)# - 1
-            self.w = round(relw * self._parent.w)# - 1
-            self.y = round(rely * self._parent.h)
-            self.x = round(relx * self._parent.w)
-        else:
-            self.h, self.w, self.y, self.x = self._hwyx
-            self.h = min(self.h, self._parent.h)
-            self.w = min(self.w, self._parent.w)
 
+        h,w,y,x = self._hwyx
 
-        y_outbounds = (self.y + self.h) - self._parent.h
-        x_outbounds = (self.x + self.w) - self._parent.w
+        if isinstance(h, float):
+            self.h = round(h * self._parent.h)
+        elif isinstance(h, int):
+            if h < 0: h += self._parent.h
+            self.h = min(h, self._parent.h)
 
-        d.log("@", y_outbounds)
+        if isinstance(w, float):
+            self.w = round(w * self._parent.w)
+        elif isinstance(w, int):
+            if w < 0: w += self._parent.w
+            self.w = min(w, self._parent.w)
+
+        if isinstance(y, float):
+            self.y = self._parent.y + round(y * self._parent.h)
+        elif isinstance(y, int):
+            if y < 0: y += self._parent.h
+            self.y = y + self._parent.y
+
+        if isinstance(x, float):
+            self.x = self._parent.x + round(x * self._parent.w)
+        elif isinstance(x, int):
+            if x < 0: x += self._parent.w
+            self.x = x + self._parent.x
+
+        y_outbounds = (self.y + self.h) - (self._parent.y + self._parent.h)
+        x_outbounds = (self.x + self.w) - (self._parent.x + self._parent.w)
 
         if y_outbounds > 0: self.y -= y_outbounds
         if x_outbounds > 0: self.x -= x_outbounds
-
 
 
     # --------------------------------------------------------------------------
@@ -99,10 +110,12 @@ class Section:
 
     # --------------------------------------------------------------------------
     def adjust_size_pos(self):
-        d.log(f"ADJUST {self.name} (parent {self._parent})")
-        d.log(f"0) y={self.y} x={self.x} h={self.h} w={self.w}")
+        d.log()
+        d.log(f"ADJUST {self.name}")
+        d.log(f"data: {self._hwyx}")
+        d.log(f"0) h={self.h} w={self.w} y={self.y} x={self.x}")
         self.update_hwyx()
-        d.log(f"1) y={self.y} x={self.x} h={self.h} w={self.w}")
+        d.log(f"1) h={self.h} w={self.w} y={self.y} x={self.x}")
 
         # try: self._win.mvwin(self.y, self.x)
         # except curses.error: pass
@@ -123,20 +136,28 @@ class Section:
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def pystr(self, s, y = None, x = None, attr = curses.A_NORMAL):
-        match str(y).upper():
-            case None: pass
-            case "T"|"TOP":    self.ystr = 0
-            case "C"|"CENTER": self.ystr = self.h // 2
-            case "B"|"BOTTOM": self.ystr = self.h - 1
-            case _:            self.ystr = y
+    def pystr(self, s, y = 0, x = 0, attr = curses.A_NORMAL):
+        rows = s.split('\n')
+        h = len(rows)
+        w = max(map(len, rows))
 
-        match str(x).upper():
-            case None: pass
-            case "L"|"LEFT":   self.xstr = 0
-            case "C"|"CENTER": self.xstr = (self.w - len(s)) // 2
-            case "R"|"RIGHT":  self.xstr = self.w - len(s)
-            case _:            self.xstr = x
+        if isinstance(y, str):
+            match y.upper():
+                case "T"|"TOP":    self.ystr = 0
+                case "C"|"CENTER": self.ystr = (self.h - h) // 2
+                case "B"|"BOTTOM": self.ystr = self.h - h
+                case _:            raise ValueError(f"Invalid y value: '{y}'")
+        else: self.ystr = y
+
+        if isinstance(x, str):
+            match str(x).upper():
+                case "L"|"LEFT":   self.xstr = 0
+                case "C"|"CENTER": self.xstr = (self.w - w) // 2
+                case "R"|"RIGHT":  self.xstr = self.w - w
+                case _:            raise ValueError(f"Invalid x value: '{y}'")
+        else: self.xstr = x
+
+        s = f"\n{self.xstr*' '}".join(rows)
 
         self.safe_addstr(s, attr)
 
@@ -171,8 +192,9 @@ class RootSection(Section):
         self.h, self.w = stdscr.getmaxyx()
         self.y, self.x = stdscr.getbegyx()
 
+        self._hwyx = (1.0, 1.0, 0, 0)
         self._parent = None
-        self._children = {}
+        self._children: OrderedDict[str, Section] = OrderedDict()
 
         self.ystr = 0
         self.xstr = 0

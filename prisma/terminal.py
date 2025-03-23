@@ -3,7 +3,7 @@ from collections.abc import Callable
 
 from prisma.section import RootSection
 
-from prisma.debug import Debug; d = Debug("out.log")
+from prisma.debug import Debug; d = Debug("log.log")
 
 
 # //////////////////////////////////////////////////////////////////////////////

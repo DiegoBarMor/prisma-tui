@@ -14,4 +14,4 @@ class Debug:
 
 
 # //////////////////////////////////////////////////////////////////////////////
-# from prisma.debug import Debug; d = Debug("debug.log")
+# from prisma.debug import Debug; d = Debug("log.log")
