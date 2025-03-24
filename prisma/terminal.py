@@ -3,9 +3,6 @@ from collections.abc import Callable
 
 from prisma.section import RootSection
 
-from prisma.debug import Debug; d = Debug("log.log")
-
-
 # //////////////////////////////////////////////////////////////////////////////
 class Terminal:
     def __init__(self, fps = None):
@@ -23,7 +20,7 @@ class Terminal:
         self.w = 0
 
     # --------------------------------------------------------------------------
-    def on_init(self):
+    def on_start(self):
         return # override!
 
     def on_update(self):
@@ -59,14 +56,14 @@ class Terminal:
 
     # --------------------------------------------------------------------------
     def main(self):
-        self.on_init()
+        self.on_start()
         self.stdscr.nodelay(self._no_delay)
 
         self._running = True
         while self._running:
             self._handle_resize()
 
-            self.root.erase()
+            # self.root.erase()
             self.on_update()
             self.root.draw()
 
@@ -95,9 +92,7 @@ class Terminal:
         if (self.h == h) and (self.w == w): return
 
         self.h = h; self.w = w
-        d.log("RESIZE")
         self.root.set_size(h, w)
-        d.log("END")
 
     # --------------------------------------------------------------------------
     def set_size(self, h, w):

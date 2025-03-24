@@ -6,18 +6,17 @@ from prisma.section import Section
 
 # //////////////////////////////////////////////////////////////////////////////
 class TUI(Terminal):
-    def on_init(self):
+    def on_start(self):
         curses.curs_set(False)
         curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_CYAN)
         curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_YELLOW)
 
         self.canvas = self.root.add_child(Section((-6, -10, 3, 5), name = "canvas"))
         self.tpanel = self.root.add_child(Section((3, 1.0,  0, 0), name = "tpanel"))
-        self.bpanel = self.root.add_child(Section((3, 1.0, -2, 0), name = "bpanel"))
+        self.bpanel = self.root.add_child(Section((3, 1.0, -3, 0), name = "bpanel"))
         self.lpanel = self.root.add_child(Section((-6, 5, 3, 0 ), name = "lpanel"))
-        self.rpanel = self.root.add_child(Section((-6, 5, 3, -2), name = "rpanel"))
+        self.rpanel = self.root.add_child(Section((-6, 5, 3, -3), name = "rpanel"))
 
-        # return
         self.canvas.mosaic('\n'.join([
             "aaab",
             "aaab",
@@ -36,8 +35,7 @@ class TUI(Terminal):
 
         self.stdscr.border()
 
-        # for char,sect in self.root._children.items():
-        for char,sect in self.canvas._children.items():
+        for char,sect in self.canvas.iter_children():
             sect.pystr(f"{char}: {sect._win.getmaxyx()}, {sect._win.getbegyx()}", 'c', 'c')
 
         self.tpanel.pystr("TOP", 'c', 'c')
@@ -45,9 +43,8 @@ class TUI(Terminal):
         self.lpanel.pystr('\n'.join("LEFT"), 'c', 'c')
         self.rpanel.pystr('\n'.join("RIGHT"), 'c', 'c')
 
-
-        for sect in self.root._children.values(): sect.border()
-        for sect in self.canvas._children.values(): sect.border()
+        for _,sect in self.root.iter_children(): sect.border()
+        for _,sect in self.canvas.iter_children(): sect.border()
 
         self.bpanel.pystr("Resize the screen with the arrow keys", 0, 'l', curses.color_pair(1))
         self.bpanel.pystr("Press F1 to exit", 1, 'l', curses.color_pair(1))

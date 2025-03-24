@@ -4,9 +4,6 @@ from collections import OrderedDict
 
 from prisma.utils.mosaic import mosaic as _mosaic
 
-from prisma.debug import Debug; d = Debug("log.log")
-
-
 # //////////////////////////////////////////////////////////////////////////////
 class Section:
     def __init__(self, hwyx, name = '', parent = None):
@@ -41,6 +38,11 @@ class Section:
     # --------------------------------------------------------------------------
     def get_child(self, name):
         return self._children[name]
+
+    # --------------------------------------------------------------------------
+    def iter_children(self):
+        for child in self._children.items():
+            yield child
 
     # --------------------------------------------------------------------------
     def mosaic(self, layout: str, divider = '\n'):
@@ -93,9 +95,9 @@ class Section:
         self.ystr = 0
         self.xstr = 0
 
-        self._win.erase()
-        for child in self._children.values():
-            child.erase()
+        self.pystr(' ' * self.w * self.h)
+        # for child in self._children.values():
+        #     child.erase()
 
     def draw(self):
         self._win.refresh()
@@ -110,18 +112,14 @@ class Section:
 
     # --------------------------------------------------------------------------
     def adjust_size_pos(self):
-        d.log()
-        d.log(f"ADJUST {self.name}")
-        d.log(f"data: {self._hwyx}")
-        d.log(f"0) h={self.h} w={self.w} y={self.y} x={self.x}")
         self.update_hwyx()
-        d.log(f"1) h={self.h} w={self.w} y={self.y} x={self.x}")
 
-        # try: self._win.mvwin(self.y, self.x)
-        # except curses.error: pass
+        try: self._win.resize(self.h, self.w)
+        except curses.error: pass
 
-        self._win.resize(self.h, self.w)
-        self._win.mvwin(self.y, self.x)
+        try: self._win.mvwin(self.y, self.x)
+        except curses.error: pass
+
         for child in self._children.values():
             child.adjust_size_pos()
 
@@ -136,8 +134,8 @@ class Section:
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def pystr(self, s, y = 0, x = 0, attr = curses.A_NORMAL):
-        rows = s.split('\n')
+    def pystr(self, s, y = 0, x = 0, attr = curses.A_NORMAL, cut: dict[str, str] = {}):
+        rows = str(s).split('\n')
         h = len(rows)
         w = max(map(len, rows))
 
@@ -156,6 +154,21 @@ class Section:
                 case "R"|"RIGHT":  self.xstr = self.w - w
                 case _:            raise ValueError(f"Invalid x value: '{y}'")
         else: self.xstr = x
+
+        if (self.xstr >= self.w) or (self.ystr >= self.h): return
+
+        for k,v in cut.items():
+            match k.upper():
+                case "T"|"TOP":
+                    rows = rows[v:]
+                case "B"|"BOTTOM":
+                    rows = rows[:self.h-self.ystr-v]
+                case "L"|"LEFT":
+                    rows = tuple(map(lambda row: row[v:], rows))
+                case "R"|"RIGHT":
+                    rows = tuple(map(lambda row: row[:self.w-self.xstr-v], rows))
+                case _:
+                    raise ValueError(f"Invalid cut key: '{k}'")
 
         s = f"\n{self.xstr*' '}".join(rows)
 
