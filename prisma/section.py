@@ -1,8 +1,8 @@
 import curses
-import numpy as np
 from collections import OrderedDict
 
 from prisma.utils.mosaic import mosaic as _mosaic
+from prisma.layer import Layer
 
 # //////////////////////////////////////////////////////////////////////////////
 class Section:
@@ -18,8 +18,7 @@ class Section:
 
         self._win: curses.window = curses.newwin(self.h, self.w, self.y, self.x)
 
-        self.ystr = 0
-        self.xstr = 0
+        self._layers = [Layer(self.h, self.w)]
 
     # --------------------------------------------------------------------------
     def __repr__(self):
@@ -49,6 +48,12 @@ class Section:
         data_hwyx = _mosaic(layout, divider)
         for char, hwyx in data_hwyx.items():
             self.add_child(Section(hwyx, name = char))
+
+    # --------------------------------------------------------------------------
+    def new_layer(self):
+        layer = Layer(self.h, self.w)
+        self._layers.append(layer)
+        return layer
 
     # --------------------------------------------------------------------------
     def update_hwyx(self):
@@ -92,8 +97,6 @@ class Section:
 
     # --------------------------------------------------------------------------
     def erase(self):
-        self.ystr = 0
-        self.xstr = 0
 
         self.pystr(' ' * self.w * self.h)
         # for child in self._children.values():
@@ -120,15 +123,18 @@ class Section:
         try: self._win.mvwin(self.y, self.x)
         except curses.error: pass
 
+        for layer in self._layers:
+            layer.set_size(self.h, self.w)
+
         for child in self._children.values():
             child.adjust_size_pos()
 
 
     # --------------------------------------------------------------------------
-    def safe_addstr(self, s, attr = curses.A_NORMAL):
+    def safe_addstr(self, y, x, s, attr = curses.A_NORMAL):
         ### ignore out of bounds error
         try: self._win.addstr(
-            self.ystr, self.xstr, s, attr
+            y, x, s, attr
         )
         except curses.error: pass
 
@@ -139,58 +145,47 @@ class Section:
         h = len(rows)
         w = max(map(len, rows))
 
+
         if isinstance(y, str):
-            match y.upper():
-                case "T"|"TOP":    self.ystr = 0
-                case "C"|"CENTER": self.ystr = (self.h - h) // 2
-                case "B"|"BOTTOM": self.ystr = self.h - h
-                case _:            raise ValueError(f"Invalid y value: '{y}'")
-        else: self.ystr = y
+            match y[0].upper():
+                case 'T': yval = 0
+                case 'C': yval = (self.h - h) // 2
+                case 'B': yval = self.h - h
+                case  _ : raise ValueError(f"Invalid y value: '{y}'")
+            modifier = y[1:]
+            if modifier: yval += int(modifier)
+        else: yval = y
 
         if isinstance(x, str):
-            match str(x).upper():
-                case "L"|"LEFT":   self.xstr = 0
-                case "C"|"CENTER": self.xstr = (self.w - w) // 2
-                case "R"|"RIGHT":  self.xstr = self.w - w
-                case _:            raise ValueError(f"Invalid x value: '{y}'")
-        else: self.xstr = x
+            match x[0].upper():
+                case 'L': xval = 0
+                case 'C': xval = (self.w - w) // 2
+                case 'R': xval = self.w - w
+                case  _ : raise ValueError(f"Invalid x value: '{y}'")
+            modifier = x[1:]
+            if modifier: xval += int(modifier)
+        else: xval = x
 
-        if (self.xstr >= self.w) or (self.ystr >= self.h): return
+        if (xval >= self.w) or (yval >= self.h): return
 
         for k,v in cut.items():
             match k.upper():
-                case "T"|"TOP":
-                    rows = rows[v:]
-                case "B"|"BOTTOM":
-                    rows = rows[:self.h-self.ystr-v]
-                case "L"|"LEFT":
-                    rows = tuple(map(lambda row: row[v:], rows))
-                case "R"|"RIGHT":
-                    rows = tuple(map(lambda row: row[:self.w-self.xstr-v], rows))
-                case _:
-                    raise ValueError(f"Invalid cut key: '{k}'")
+                case 'T': rows = rows[v:]
+                case 'B': rows = rows[:self.h-yval-v]
+                case 'L': rows = tuple(map(lambda row: row[v:], rows))
+                case 'R': rows = tuple(map(lambda row: row[:self.w-xval-v], rows))
+                case  _ : raise ValueError(f"Invalid cut key: '{k}'")
 
-        s = f"\n{self.xstr*' '}".join(rows)
+        s = f"\n{xval*' '}".join(rows)
 
-        self.safe_addstr(s, attr)
+        self.safe_addstr(yval, xval, s, attr)
 
     # -------------------------------------------------------------------------
-    def addlayer(self, layer):
-        w,h = layer.arr.shape
+    def draw_layers(self):
+        for layer in self._layers:
+            for y,x,s,attr in layer.draw():
+                self.safe_addstr(y, x, s, attr)
 
-        mask_f = layer.arr.flatten()
-        borders = mask_f.copy()
-        borders[1:] ^= mask_f[:-1]
-        borders[-1] |= mask_f[-1]
-        idxs = np.arange(len(borders))[borders]
-
-        for i0,i1 in zip(idxs[0::2], idxs[1::2]):
-            s = (i1-i0)*layer._chars[1] # [TODO] hardcoded
-            self.ystr = i0 // h
-            self.xstr = i0 % h
-            self.safe_addstr(s, layer._attrs[1])
-
-        return layer
 
     # --------------------------------------------------------------------------
     def border(self, *args): self._win.border(*args)
@@ -208,9 +203,7 @@ class RootSection(Section):
         self._hwyx = (1.0, 1.0, 0, 0)
         self._parent = None
         self._children: OrderedDict[str, Section] = OrderedDict()
-
-        self.ystr = 0
-        self.xstr = 0
+        self._layers = [Layer(self.h, self.w)]
 
     # --------------------------------------------------------------------------
     def set_size(self, h, w):

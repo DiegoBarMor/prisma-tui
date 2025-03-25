@@ -10,9 +10,9 @@ class TUI(Terminal):
         curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_CYAN)
 
     def on_update(self):
-        self.pystr(f"{curses.LINES} lines, {curses.COLS} cols", 'c', 'c', curses.A_REVERSE)
-        self.pystr(f"Key pressed: {self.char}", self.root.ystr + 1, 'c', curses.A_BOLD)
-        self.pystr("Press F1 to exit", 'b', 'l', curses.color_pair(1))
+        self.pystr(f"{curses.LINES} lines, {curses.COLS} cols", 'C', 'C', curses.A_REVERSE)
+        self.pystr(f"Key pressed: {self.char}", "C+1", 'C', curses.A_BOLD)
+        self.pystr("Press F1 to exit", 'B', 'L', curses.color_pair(1))
 
     def kill_when(self):
         return self.char == curses.KEY_F1

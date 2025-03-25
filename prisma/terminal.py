@@ -101,7 +101,7 @@ class Terminal:
 
     # --------------------------------------------------------------------------
     def pystr(self, *args, **kws): self.root.pystr(*args, **kws)
-    def addlayer(self, *args, **kws): self.root.addlayer(*args, **kws)
+    def draw_layers(self, *args, **kws): self.root.draw_layers(*args, **kws)
 
 
 # //////////////////////////////////////////////////////////////////////////////
