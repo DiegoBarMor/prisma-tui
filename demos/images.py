@@ -18,16 +18,7 @@ class TUI(Terminal):
 
 
     def on_update(self):
-        shape = (curses.LINES, curses.COLS)
-
-        self.bg.set_size(*shape)
-        self.bg.arr = ~self.bg.arr
-
-        self.fg.set_size(*shape)
-        self.fg.addimg("demos/data/cat.npy", 2, 3)
-
-        self.draw_layers()
-
+        self.fg.addimg(2, 3, "demos/data/cat.npy")
         self.pystr("Press F1 to exit", 'b', 'l', curses.color_pair(1))
         self.pystr(f"{curses.LINES} {curses.COLS}", 't', 'r', curses.A_REVERSE)
 

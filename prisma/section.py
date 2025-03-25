@@ -97,12 +97,16 @@ class Section:
 
     # --------------------------------------------------------------------------
     def erase(self):
-
-        self.pystr(' ' * self.w * self.h)
-        # for child in self._children.values():
-        #     child.erase()
+        pass
 
     def draw(self):
+        for layer in self._layers:
+            idx = 0
+            for chars,attr in layer.get_strs():
+                y,x = divmod(idx, self.w)
+                self.safe_addstr(y, x, chars, attr)
+                idx += len(chars)
+
         self._win.refresh()
         for child in self._children.values():
             child.draw()
@@ -132,11 +136,8 @@ class Section:
 
     # --------------------------------------------------------------------------
     def safe_addstr(self, y, x, s, attr = curses.A_NORMAL):
-        ### ignore out of bounds error
-        try: self._win.addstr(
-            y, x, s, attr
-        )
-        except curses.error: pass
+        try: self._win.addstr(y, x, s, attr)
+        except curses.error: pass # ignore out of bounds error
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -179,13 +180,6 @@ class Section:
         s = f"\n{xval*' '}".join(rows)
 
         self.safe_addstr(yval, xval, s, attr)
-
-    # -------------------------------------------------------------------------
-    def draw_layers(self):
-        for layer in self._layers:
-            for y,x,s,attr in layer.draw():
-                self.safe_addstr(y, x, s, attr)
-
 
     # --------------------------------------------------------------------------
     def border(self, *args): self._win.border(*args)

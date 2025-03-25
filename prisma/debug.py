@@ -10,7 +10,7 @@ class Debug:
     def log(self, *text, end = '\n'):
         text = ' '.join(map(str, text))
         with open(self.path, 'a') as file:
-            file.write(str(text) + end)
+            file.write(text + end)
 
 
 # //////////////////////////////////////////////////////////////////////////////

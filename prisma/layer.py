@@ -1,96 +1,88 @@
 import curses
 import numpy as np
 
-def overlay(orig, modf):
-    return ''.join(m if m != ' ' else o for o,m in zip(orig, modf))
-
+import prisma.utils.funcs_layer as _layer
 
 # //////////////////////////////////////////////////////////////////////////////
 class Layer:
     def __init__(self, h, w, dtype = bool):
         self.h = h
         self.w = w
-        self.arr = np.zeros((h,w), dtype = dtype)
 
-        self._char_map = [' ' for _ in range(8*self.arr.itemsize)]
-        self._attr_map = [curses.A_NORMAL for _ in self._char_map]
-        self._dtype = self.arr.dtype # ensures _dtype is correct
+        arr = np.empty(0, dtype = dtype)
 
-        self._rows = []
+        self.blank_char = ' '
+        self.blank_attr = curses.A_NORMAL
+
+        n = 8 * arr.itemsize
+        self._char_map = [self.blank_char for _ in range(n)]
+        self._attr_map = [self.blank_attr for _ in range(n)]
+        self._dtype = arr.dtype # ensures _dtype is correct
+
+        self._mat_chars = []
+        self._mat_attrs = []
         self._add_rows(self.h)
 
 
     # --------------------------------------------------------------------------
     def _add_rows(self, n):
-        self._rows += [self.w*' ' for _ in range(n)]
-
-    def _remove_rows(self, n):
-        self._rows = self._rows[:n]
+        self._mat_chars += [self.w * self.blank_char  for _ in range(n)]
+        self._mat_attrs += [[self.blank_attr for _ in range(self.w)] for _ in range(n)]
 
     def _add_cols(self, n):
-        self._rows = [row + n*' ' for row in self._rows]
+        self._mat_chars = [row + n * self.blank_char  for row in self._mat_chars]
+        self._mat_attrs = [row + [self.blank_attr for _ in range(n)] for row in self._mat_attrs]
+
+    def _remove_rows(self, n):
+        self._mat_chars = self._mat_chars[:n]
+        self._mat_attrs = self._mat_attrs[:n]
 
     def _remove_cols(self, n):
-        self._rows = [row[:n] for row in self._rows]
-
-    # def _overwrite_row(self, data, start, end):
-        # pass
-
-    # def _overlay_row(self, data, start, end):
-        # pass
-
-    # --------------------------------------------------------------------------
-    def _overwrite_block(self, data, start, end):
-        y0,x0 = start
-        y1,x1 = end
-        orig = self._rows[y0,y1]
-        modf = data[y0,y1]
-        self._rows[y0,y1] = [o[:x0]+m[x0:x1]+o[x1:] for o,m in zip(orig, modf)]
-
-    def _overlay_block(self, data, start, end):
-        y0,x0 = start
-        y1,x1 = end
-        orig = self._rows[y0,y1]
-        modf = data[y0,y1]
-        self._rows[y0,y1] = [o[:x0]+overlay(m[x0:x1], o[x0:x1])+o[x1:] for o,m in zip(orig, modf)]
-
-
+        self._mat_chars = [row[:n] for row in self._mat_chars]
+        self._mat_attrs = [row[:n] for row in self._mat_attrs]
 
 
     # --------------------------------------------------------------------------
     def _stamp(self, y, x, data, overwrite):
-        if (y >= self.h) or (x >= self.w) or not data: return
+        mat_chars, mat_attrs = data
+        if (y >= self.h) or (x >= self.w): return
 
-        h_data = len(data)
-        stamped = self._rows[y:y+h_data+1]
+        h_kernel = len(mat_chars)
+        w_kernel = len(mat_chars[0])
+
+        stamped = self._mat_chars[y:y+h_kernel]
         h_stamped = len(stamped)
+        w_stamped = len(stamped[0][x:x+w_kernel])
 
-        w_data = data[0]
-        w_stamped = self._rows[0][x:x+w_data+1]
+        y0, y1 = (y, y + h_stamped)
+        x0, x1 = (x, x + w_stamped)
 
-        start = (y, y + h_stamped + 1)
-        end   = (x, x + w_stamped + 1)
+        func = _layer.overwrite_row if overwrite else _layer.overlay_row
 
-        f = self._overwrite_block if overwrite else self._overlay_block
-        f(data, start, end)
+        modf_chars = mat_chars[:h_stamped]
+        modf_attrs = mat_attrs[:h_stamped]
+        orig_chars = self._mat_chars[y0:y1]
+        orig_attrs = self._mat_attrs[y0:y1]
+        self._mat_chars[y0:y1] = [func(o,m,x0,x1) for o,m in zip(orig_chars, modf_chars)]
+        self._mat_attrs[y0:y1] = [func(o,m,x0,x1) for o,m in zip(orig_attrs, modf_attrs)]
 
 
     # --------------------------------------------------------------------------
-    def addimg(self, img, y = 0, x = 0):
+    def addimg(self, y, x, img, overwrite = False):
         arr = np.load(img).astype(self._dtype) \
             if isinstance(img, str) else img
 
         arr = ~arr # [WIP] fix this
 
-        h,w = arr.shape
-        imgh = max(h, self.h)
-        imgw = max(w, self.w)
-        self.arr[y:y+h, x:x+w] = arr[:imgh, :imgw]
+        data = (_layer.np2str(arr, self._char_map), _layer.np2list(arr, self._attr_map))
+        self._stamp(y, x, data, overwrite)
+
 
     # --------------------------------------------------------------------------
     def setchattr(self, idx, char = '', attr = curses.A_NORMAL):
         self._char_map[idx] = char
         self._attr_map[idx] = attr
+
 
     # --------------------------------------------------------------------------
     def set_size(self, h, w):
@@ -103,21 +95,19 @@ class Layer:
         self.w = w
 
 
+    # --------------------------------------------------------------------------
+    def get_strs(self):
+        flat_chars = ''.join(self._mat_chars)
+        flat_attrs = [attr for row in self._mat_attrs for attr in row]
 
-    def draw(self):
-        w,h = self.arr.shape
+        attrs_offset_0 = flat_attrs[:-1]
+        attrs_offset_1 = flat_attrs[1:]
 
-        mask_f = self.arr.flatten()
-        borders = mask_f.copy()
-        borders[1:] ^= mask_f[:-1]
-        borders[-1] |= mask_f[-1]
-        idxs = np.arange(len(borders))[borders]
+        attrs_mask = (a != b for a,b in zip(attrs_offset_0, attrs_offset_1))
+        border_idxs = [0] + [i for i,a in enumerate(attrs_mask, start = 1) if a] + [len(flat_chars)]
 
-        for i0,i1 in zip(idxs[0::2], idxs[1::2]):
-            s = (i1-i0)*self._char_map[1] # [TODO] hardcoded
-            y,x = divmod(i0, h)
-            yield y, x, s, self._attr_map[1]
-
+        for i0,i1 in zip(border_idxs[:-1], border_idxs[1:]):
+            yield flat_chars[i0:i1], flat_attrs[i0]
 
 
 # //////////////////////////////////////////////////////////////////////////////
