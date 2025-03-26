@@ -1,12 +1,7 @@
 import curses
 import numpy as np
 
-import prisma.utils.funcs_layer as _layer
-
 from prisma.matrix import MatrixChars, MatrixAttrs
-
-from prisma.debug import Debug; d = Debug("layer.log")
-
 
 # //////////////////////////////////////////////////////////////////////////////
 class Layer:
@@ -26,13 +21,41 @@ class Layer:
 
 
     # --------------------------------------------------------------------------
+    def __add__(self, other: "Layer"):
+        if (self.h != other.h) or (self.w != other.w):
+            raise ValueError("Cannot add layers of different sizes")
+
+        self._stamp(0, 0, other._mat_chars._mat, other._mat_attrs._mat, False)
+        return self
+
+
+    # --------------------------------------------------------------------------
     def _stamp(self, y, x, chars, attrs, overwrite):
         self._mat_chars.stamp(y, x, chars, overwrite)
         self._mat_attrs.stamp(y, x, attrs, overwrite)
 
 
     # --------------------------------------------------------------------------
-    def addimg(self, y, x, img, overwrite = False):
+    def fill(self, char = ' ', attr = curses.A_NORMAL):
+        self._mat_chars.fill(char)
+        self._mat_attrs.fill(attr)
+
+
+    # --------------------------------------------------------------------------
+    def set_chattr(self, idx, char = '', attr = curses.A_NORMAL):
+        self._mat_chars.set_idx_map(idx, char)
+        self._mat_attrs.set_idx_map(idx, attr)
+
+
+    # --------------------------------------------------------------------------
+    def set_size(self, h, w):
+        self._mat_chars.set_size(h, w)
+        self._mat_attrs.set_size(h, w)
+        self.h = h; self.w = w
+
+
+    # --------------------------------------------------------------------------
+    def add_img(self, y, x, img, overwrite = False):
         arr = np.load(img).astype(self._dtype) \
             if isinstance(img, str) else img
 
@@ -43,26 +66,7 @@ class Layer:
 
 
     # --------------------------------------------------------------------------
-    def fill(self, char = ' ', attr = curses.A_NORMAL):
-        self._mat_chars.fill(char)
-        self._mat_attrs.fill(attr)
-
-
-    # --------------------------------------------------------------------------
-    def setchattr(self, idx, char = '', attr = curses.A_NORMAL):
-        self._mat_chars.set_idx_map(idx, char)
-        self._mat_attrs.set_idx_map(idx, attr)
-
-
-    # --------------------------------------------------------------------------
-    def set_size(self, h, w):
-        self._mat_chars.set_size(h, w)
-        self._mat_attrs.set_size(h, w)
-        self.h = h
-        self.w = w
-
-
-    def pystr(self, s, y = 0, x = 0, attr = curses.A_NORMAL, overwrite = False, cut: dict[str, str] = {}):
+    def add_text(self, s, y = 0, x = 0, attr = curses.A_NORMAL, overwrite = False, cut: dict[str, str] = {}):
         rows = str(s).split('\n')
         h = len(rows)
         w = max(map(len, rows))
@@ -105,9 +109,6 @@ class Layer:
 
     # --------------------------------------------------------------------------
     def get_strs(self):
-        d.log("LAYER")
-        d.log(*self._mat_chars._mat, sep = '\n')
-
         flat_chars = ''.join(self._mat_chars._mat)
         flat_attrs = [attr for row in self._mat_attrs._mat for attr in row]
 

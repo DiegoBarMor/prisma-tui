@@ -100,7 +100,7 @@ class Terminal:
         self._handle_resize()
 
     # --------------------------------------------------------------------------
-    def pystr(self, *args, **kws): self.root.pystr(*args, **kws)
+    def add_text(self, *args, **kws): self.root.add_text(*args, **kws)
     def draw_layers(self, *args, **kws): self.root.draw_layers(*args, **kws)
 
 

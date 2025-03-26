@@ -107,14 +107,15 @@ class Section:
             child.clear()
 
     def draw(self):
-        d.log("DRAWING")
-        for layer in self._layers:
-            idx = 0
-            for chars,attr in layer.get_strs():
-                y,x = divmod(idx, self.w)
-                d.log(f"{idx}) {len(chars)} (y={y}, x={x}) (wsect={self.w}, wlayer={layer.w}) chars: '{chars}', attr: {attr}")
-                self.safe_addstr(y, x, chars, attr)
-                idx += len(chars)
+        layer = Layer(self.h, self.w)
+        for next_layer in self._layers:
+            layer += next_layer
+
+        idx = 0
+        for chars,attr in layer.get_strs():
+            y,x = divmod(idx, self.w)
+            self.safe_addstr(y, x, chars, attr)
+            idx += len(chars)
 
         self._win.refresh()
         for child in self._children.values():
@@ -150,8 +151,8 @@ class Section:
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def pystr(self, *args, **kwds):
-        self._layers[0].pystr(*args, **kwds)
+    def add_text(self, *args, **kwds):
+        self._layers[0].add_text(*args, **kwds)
 
 
     # --------------------------------------------------------------------------

@@ -36,19 +36,19 @@ class TUI(Terminal):
         self.stdscr.border()
 
         for char,sect in self.canvas.iter_children():
-            sect.pystr(f"{char}: {sect._win.getmaxyx()}, {sect._win.getbegyx()}", 'c', 'c')
+            sect.add_text(f"{char}: {sect._win.getmaxyx()}, {sect._win.getbegyx()}", 'c', 'c')
 
-        self.tpanel.pystr("TOP", 'c', 'c')
-        self.bpanel.pystr("BOTTOM", 'c', 'c')
-        self.lpanel.pystr('\n'.join("LEFT"), 'c', 'c')
-        self.rpanel.pystr('\n'.join("RIGHT"), 'c', 'c')
+        self.tpanel.add_text("TOP", 'c', 'c')
+        self.bpanel.add_text("BOTTOM", 'c', 'c')
+        self.lpanel.add_text('\n'.join("LEFT"), 'c', 'c')
+        self.rpanel.add_text('\n'.join("RIGHT"), 'c', 'c')
 
         for _,sect in self.root.iter_children(): sect.border()
         for _,sect in self.canvas.iter_children(): sect.border()
 
-        self.bpanel.pystr("Resize the screen with the arrow keys", 0, 'l', curses.color_pair(1))
-        self.bpanel.pystr("Press F1 to exit", 1, 'l', curses.color_pair(1))
-        self.bpanel.pystr(f"{curses.LINES} {curses.COLS}", 1, 'r', curses.A_REVERSE)
+        self.bpanel.add_text("Resize the screen with the arrow keys", 0, 'l', curses.color_pair(1))
+        self.bpanel.add_text("Press F1 to exit", 1, 'l', curses.color_pair(1))
+        self.bpanel.add_text(f"{curses.LINES} {curses.COLS}", 1, 'r', curses.A_REVERSE)
 
 
     def kill_when(self):
