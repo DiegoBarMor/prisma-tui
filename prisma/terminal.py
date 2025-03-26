@@ -63,7 +63,7 @@ class Terminal:
         while self._running:
             self._handle_resize()
 
-            # self.root.erase()
+            self.root.clear()
             self.on_update()
             self.root.draw()
 

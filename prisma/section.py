@@ -4,6 +4,9 @@ from collections import OrderedDict
 from prisma.utils.mosaic import mosaic as _mosaic
 from prisma.layer import Layer
 
+from prisma.debug import Debug; d = Debug("section.log")
+
+
 # //////////////////////////////////////////////////////////////////////////////
 class Section:
     def __init__(self, hwyx, name = '', parent = None):
@@ -96,14 +99,20 @@ class Section:
 
 
     # --------------------------------------------------------------------------
-    def erase(self):
-        pass
+    def clear(self):
+        for layer in self._layers:
+            layer.fill()
+
+        for child in self._children.values():
+            child.clear()
 
     def draw(self):
+        d.log("DRAWING")
         for layer in self._layers:
             idx = 0
             for chars,attr in layer.get_strs():
                 y,x = divmod(idx, self.w)
+                d.log(f"{idx}) {len(chars)} (y={y}, x={x}) (wsect={self.w}, wlayer={layer.w}) chars: '{chars}', attr: {attr}")
                 self.safe_addstr(y, x, chars, attr)
                 idx += len(chars)
 
@@ -141,45 +150,9 @@ class Section:
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def pystr(self, s, y = 0, x = 0, attr = curses.A_NORMAL, cut: dict[str, str] = {}):
-        rows = str(s).split('\n')
-        h = len(rows)
-        w = max(map(len, rows))
+    def pystr(self, *args, **kwds):
+        self._layers[0].pystr(*args, **kwds)
 
-
-        if isinstance(y, str):
-            match y[0].upper():
-                case 'T': yval = 0
-                case 'C': yval = (self.h - h) // 2
-                case 'B': yval = self.h - h
-                case  _ : raise ValueError(f"Invalid y value: '{y}'")
-            modifier = y[1:]
-            if modifier: yval += int(modifier)
-        else: yval = y
-
-        if isinstance(x, str):
-            match x[0].upper():
-                case 'L': xval = 0
-                case 'C': xval = (self.w - w) // 2
-                case 'R': xval = self.w - w
-                case  _ : raise ValueError(f"Invalid x value: '{y}'")
-            modifier = x[1:]
-            if modifier: xval += int(modifier)
-        else: xval = x
-
-        if (xval >= self.w) or (yval >= self.h): return
-
-        for k,v in cut.items():
-            match k.upper():
-                case 'T': rows = rows[v:]
-                case 'B': rows = rows[:self.h-yval-v]
-                case 'L': rows = tuple(map(lambda row: row[v:], rows))
-                case 'R': rows = tuple(map(lambda row: row[:self.w-xval-v], rows))
-                case  _ : raise ValueError(f"Invalid cut key: '{k}'")
-
-        s = f"\n{xval*' '}".join(rows)
-
-        self.safe_addstr(yval, xval, s, attr)
 
     # --------------------------------------------------------------------------
     def border(self, *args): self._win.border(*args)

@@ -3,68 +3,32 @@ import numpy as np
 
 import prisma.utils.funcs_layer as _layer
 
+from prisma.matrix import MatrixChars, MatrixAttrs
+
+from prisma.debug import Debug; d = Debug("layer.log")
+
+
 # //////////////////////////////////////////////////////////////////////////////
 class Layer:
     def __init__(self, h, w, dtype = bool):
         self.h = h
         self.w = w
 
+        self._mat_chars = MatrixChars(h, w)
+        self._mat_attrs = MatrixAttrs(h, w)
+
         arr = np.empty(0, dtype = dtype)
 
-        self.blank_char = ' '
-        self.blank_attr = curses.A_NORMAL
-
         n = 8 * arr.itemsize
-        self._char_map = [self.blank_char for _ in range(n)]
-        self._attr_map = [self.blank_attr for _ in range(n)]
+        self._mat_chars.init_map(n)
+        self._mat_attrs.init_map(n)
         self._dtype = arr.dtype # ensures _dtype is correct
 
-        self._mat_chars = []
-        self._mat_attrs = []
-        self._add_rows(self.h)
-
 
     # --------------------------------------------------------------------------
-    def _add_rows(self, n):
-        self._mat_chars += [self.w * self.blank_char  for _ in range(n)]
-        self._mat_attrs += [[self.blank_attr for _ in range(self.w)] for _ in range(n)]
-
-    def _add_cols(self, n):
-        self._mat_chars = [row + n * self.blank_char  for row in self._mat_chars]
-        self._mat_attrs = [row + [self.blank_attr for _ in range(n)] for row in self._mat_attrs]
-
-    def _remove_rows(self, n):
-        self._mat_chars = self._mat_chars[:n]
-        self._mat_attrs = self._mat_attrs[:n]
-
-    def _remove_cols(self, n):
-        self._mat_chars = [row[:n] for row in self._mat_chars]
-        self._mat_attrs = [row[:n] for row in self._mat_attrs]
-
-
-    # --------------------------------------------------------------------------
-    def _stamp(self, y, x, data, overwrite):
-        mat_chars, mat_attrs = data
-        if (y >= self.h) or (x >= self.w): return
-
-        h_kernel = len(mat_chars)
-        w_kernel = len(mat_chars[0])
-
-        stamped = self._mat_chars[y:y+h_kernel]
-        h_stamped = len(stamped)
-        w_stamped = len(stamped[0][x:x+w_kernel])
-
-        y0, y1 = (y, y + h_stamped)
-        x0, x1 = (x, x + w_stamped)
-
-        func = _layer.overwrite_row if overwrite else _layer.overlay_row
-
-        modf_chars = mat_chars[:h_stamped]
-        modf_attrs = mat_attrs[:h_stamped]
-        orig_chars = self._mat_chars[y0:y1]
-        orig_attrs = self._mat_attrs[y0:y1]
-        self._mat_chars[y0:y1] = [func(o,m,x0,x1) for o,m in zip(orig_chars, modf_chars)]
-        self._mat_attrs[y0:y1] = [func(o,m,x0,x1) for o,m in zip(orig_attrs, modf_attrs)]
+    def _stamp(self, y, x, chars, attrs, overwrite):
+        self._mat_chars.stamp(y, x, chars, overwrite)
+        self._mat_attrs.stamp(y, x, attrs, overwrite)
 
 
     # --------------------------------------------------------------------------
@@ -74,31 +38,78 @@ class Layer:
 
         arr = ~arr # [WIP] fix this
 
-        data = (_layer.np2str(arr, self._char_map), _layer.np2list(arr, self._attr_map))
-        self._stamp(y, x, data, overwrite)
+        self._mat_chars.load_arr(y, x, arr, overwrite)
+        self._mat_attrs.load_arr(y, x, arr, overwrite)
+
+
+    # --------------------------------------------------------------------------
+    def fill(self, char = ' ', attr = curses.A_NORMAL):
+        self._mat_chars.fill(char)
+        self._mat_attrs.fill(attr)
 
 
     # --------------------------------------------------------------------------
     def setchattr(self, idx, char = '', attr = curses.A_NORMAL):
-        self._char_map[idx] = char
-        self._attr_map[idx] = attr
+        self._mat_chars.set_idx_map(idx, char)
+        self._mat_attrs.set_idx_map(idx, attr)
 
 
     # --------------------------------------------------------------------------
     def set_size(self, h, w):
-        if   h < self.h: self._remove_rows(h)
-        elif h > self.h: self._add_rows(h - self.h)
+        self._mat_chars.set_size(h, w)
+        self._mat_attrs.set_size(h, w)
         self.h = h
-
-        if   w < self.w: self._remove_cols(w)
-        elif w > self.w: self._add_cols(w - self.w)
         self.w = w
+
+
+    def pystr(self, s, y = 0, x = 0, attr = curses.A_NORMAL, overwrite = False, cut: dict[str, str] = {}):
+        rows = str(s).split('\n')
+        h = len(rows)
+        w = max(map(len, rows))
+
+        chars = [row.ljust(w) for row in rows]
+        attrs = [[attr for _ in range(w)] for _ in range(h)]
+
+        if isinstance(y, str):
+            match y[0].upper():
+                case 'T': yval = 0
+                case 'C': yval = (self.h - h) // 2
+                case 'B': yval = self.h - h
+                case  _ : raise ValueError(f"Invalid y value: '{y}'")
+            modifier = y[1:]
+            if modifier: yval += int(modifier)
+        else: yval = y
+
+        if isinstance(x, str):
+            match x[0].upper():
+                case 'L': xval = 0
+                case 'C': xval = (self.w - w) // 2
+                case 'R': xval = self.w - w
+                case  _ : raise ValueError(f"Invalid x value: '{y}'")
+            modifier = x[1:]
+            if modifier: xval += int(modifier)
+        else: xval = x
+
+        if (xval >= self.w) or (yval >= self.h): return
+
+        for k,v in cut.items():
+            match k.upper():
+                case 'T': chars = chars[v:]
+                case 'B': chars = chars[:self.h-yval-v]
+                case 'L': chars = tuple(map(lambda row: row[v:], chars))
+                case 'R': chars = tuple(map(lambda row: row[:self.w-xval-v], chars))
+                case  _ : raise ValueError(f"Invalid cut key: '{k}'")
+
+        self._stamp(yval, xval, chars, attrs, overwrite)
 
 
     # --------------------------------------------------------------------------
     def get_strs(self):
-        flat_chars = ''.join(self._mat_chars)
-        flat_attrs = [attr for row in self._mat_attrs for attr in row]
+        d.log("LAYER")
+        d.log(*self._mat_chars._mat, sep = '\n')
+
+        flat_chars = ''.join(self._mat_chars._mat)
+        flat_attrs = [attr for row in self._mat_attrs._mat for attr in row]
 
         attrs_offset_0 = flat_attrs[:-1]
         attrs_offset_1 = flat_attrs[1:]
