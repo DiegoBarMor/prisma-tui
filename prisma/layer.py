@@ -36,9 +36,13 @@ class Layer:
 
 
     # --------------------------------------------------------------------------
-    def fill(self, char = ' ', attr = curses.A_NORMAL):
-        self._mat_chars.fill(char)
-        self._mat_attrs.fill(attr)
+    def fill_row(self, i, char = ' ', attr = curses.A_NORMAL):
+        self._mat_chars.fill_row(i, char)
+        self._mat_attrs.fill_row(i, attr)
+
+    def fill_matrix(self, char = ' ', attr = curses.A_NORMAL):
+        self._mat_chars.fill_matrix(char)
+        self._mat_attrs.fill_matrix(attr)
 
 
     # --------------------------------------------------------------------------

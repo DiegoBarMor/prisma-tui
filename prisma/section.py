@@ -4,12 +4,9 @@ from collections import OrderedDict
 from prisma.utils.mosaic import mosaic as _mosaic
 from prisma.layer import Layer
 
-from prisma.debug import Debug; d = Debug("section.log")
-
-
 # //////////////////////////////////////////////////////////////////////////////
 class Section:
-    def __init__(self, hwyx, name = '', parent = None):
+    def __init__(self, hwyx, name = '', parent = None) -> "Section":
         self._hwyx = hwyx
         self._parent: Section = parent
         self._children: OrderedDict[str, Section] = OrderedDict()
@@ -22,6 +19,9 @@ class Section:
         self._win: curses.window = curses.newwin(self.h, self.w, self.y, self.x)
 
         self._layers = [Layer(self.h, self.w)]
+        self._do_border = False
+        self._const_txt = False
+        self._drawn = False
 
     # --------------------------------------------------------------------------
     def __repr__(self):
@@ -32,13 +32,13 @@ class Section:
         self._parent = parent
 
     # --------------------------------------------------------------------------
-    def add_child(self, section: "Section"):
+    def add_child(self, section: "Section") -> "Section":
         self._children[section.name] = section
         section.set_parent(self)
         return section
 
     # --------------------------------------------------------------------------
-    def get_child(self, name):
+    def get_child(self, name) -> "Section":
         return self._children[name]
 
     # --------------------------------------------------------------------------
@@ -53,7 +53,7 @@ class Section:
             self.add_child(Section(hwyx, name = char))
 
     # --------------------------------------------------------------------------
-    def new_layer(self):
+    def new_layer(self) -> Layer:
         layer = Layer(self.h, self.w)
         self._layers.append(layer)
         return layer
@@ -100,8 +100,9 @@ class Section:
 
     # --------------------------------------------------------------------------
     def clear(self):
-        for layer in self._layers:
-            layer.fill()
+        if not self._const_txt:
+            for layer in self._layers:
+                layer.fill_matrix()
 
         for child in self._children.values():
             child.clear()
@@ -116,6 +117,9 @@ class Section:
             y,x = divmod(idx, self.w)
             self.safe_addstr(y, x, chars, attr)
             idx += len(chars)
+
+        if self._do_border:
+            self._win.border()
 
         self._win.refresh()
         for child in self._children.values():
@@ -156,7 +160,11 @@ class Section:
 
 
     # --------------------------------------------------------------------------
-    def border(self, *args): self._win.border(*args)
+    def do_border(self, bool_val = True):
+        self._do_border = bool_val
+
+    def const_txt(self, bool_val = True):
+        self._const_txt = bool_val
 
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -172,6 +180,9 @@ class RootSection(Section):
         self._parent = None
         self._children: OrderedDict[str, Section] = OrderedDict()
         self._layers = [Layer(self.h, self.w)]
+        self._do_border = False
+        self._const_txt = False
+        self._drawn = False
 
     # --------------------------------------------------------------------------
     def set_size(self, h, w):

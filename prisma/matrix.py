@@ -56,8 +56,12 @@ class Matrix:
         orig = self._mat[y0:y1]
         self._mat[y0:y1] = [func(o,m,x0,x1) for o,m in zip(orig, modf)]
 
-    def fill(self, val):
-        self._mat = [self._new_subrow(self.w, val) for _ in range(self.h)]
+    # --------------------------------------------------------------------------
+    def fill_row(self, i, val):
+        self._mat[i] = self._new_subrow(self.w, val)
+
+    def fill_matrix(self, val):
+        for i in range(self.h): self.fill_row(i, val)
 
     # --------------------------------------------------------------------------
     @classmethod

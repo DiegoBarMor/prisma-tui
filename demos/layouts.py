@@ -43,13 +43,12 @@ class TUI(Terminal):
         self.lpanel.add_text('\n'.join("LEFT"), 'c', 'c')
         self.rpanel.add_text('\n'.join("RIGHT"), 'c', 'c')
 
-        for _,sect in self.root.iter_children(): sect.border()
-        for _,sect in self.canvas.iter_children(): sect.border()
-
         self.bpanel.add_text("Resize the screen with the arrow keys", 0, 'l', curses.color_pair(1))
         self.bpanel.add_text("Press F1 to exit", 1, 'l', curses.color_pair(1))
         self.bpanel.add_text(f"{curses.LINES} {curses.COLS}", 1, 'r', curses.A_REVERSE)
 
+        for _,sect in self.root.iter_children(): sect.do_border(True)
+        for _,sect in self.canvas.iter_children(): sect.do_border(True)
 
     def kill_when(self):
         return self.char == curses.KEY_F1

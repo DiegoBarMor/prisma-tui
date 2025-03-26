@@ -34,7 +34,7 @@ class TUI(Terminal):
 
 
     def on_update(self):
-        # self.bg.fill('.')
+        # self.bg.fill_matrix('.')
         self.fg.add_img(2, 3, "demos/data/cat.npy")
         self.overlay0.add_img(0, 0, self.effect0)
         self.overlay1.add_img(0, 0, self.effect1)
