@@ -6,6 +6,15 @@ from pathlib import Path
 path_img = Path(sys.argv[1])
 path_npy = path_img.with_suffix(".npy")
 
-img = Image.open(path_img)
+img = Image.open(path_img).convert("RGBA")
 arr = np.array(img)
-np.save(path_npy, arr.astype(bool))
+alpha = arr[:, :, 3]
+
+print(alpha.shape)
+
+out = np.zeros_like(alpha)
+out[alpha > 128] = 1
+
+
+
+np.save(path_npy, out)

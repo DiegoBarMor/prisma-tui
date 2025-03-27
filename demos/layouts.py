@@ -24,6 +24,7 @@ class TUI(Terminal):
             "ccdd",
         ]))
 
+    # --------------------------------------------------------------------------
     def on_update(self):
         h,w = self.root.get_size()
         match self.char:
@@ -50,6 +51,7 @@ class TUI(Terminal):
         for _,sect in self.root.iter_children(): sect.do_border(True)
         for _,sect in self.canvas.iter_children(): sect.do_border(True)
 
+    # --------------------------------------------------------------------------
     def kill_when(self):
         return self.char == curses.KEY_F1
 

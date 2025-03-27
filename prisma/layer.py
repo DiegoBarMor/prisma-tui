@@ -2,22 +2,16 @@ import curses
 import numpy as np
 
 from prisma.matrix import MatrixChars, MatrixAttrs
+import prisma.settings as _glob
+from prisma.utils import Debug; d = Debug("layer.log")
 
 # //////////////////////////////////////////////////////////////////////////////
 class Layer:
-    def __init__(self, h, w, dtype = bool):
+    def __init__(self, h, w):
         self.h = h
         self.w = w
-
         self._mat_chars = MatrixChars(h, w)
         self._mat_attrs = MatrixAttrs(h, w)
-
-        arr = np.empty(0, dtype = dtype)
-
-        n = 8 * arr.itemsize
-        self._mat_chars.init_map(n)
-        self._mat_attrs.init_map(n)
-        self._dtype = arr.dtype # ensures _dtype is correct
 
 
     # --------------------------------------------------------------------------
@@ -25,14 +19,8 @@ class Layer:
         if (self.h != other.h) or (self.w != other.w):
             raise ValueError("Cannot add layers of different sizes")
 
-        self._stamp(0, 0, other._mat_chars._mat, other._mat_attrs._mat, False)
+        self._stamp(0, 0, other._mat_chars._mat, other._mat_attrs._mat, _glob.MERGE)
         return self
-
-
-    # --------------------------------------------------------------------------
-    def _stamp(self, y, x, chars, attrs, overwrite):
-        self._mat_chars.stamp(y, x, chars, overwrite)
-        self._mat_attrs.stamp(y, x, attrs, overwrite)
 
 
     # --------------------------------------------------------------------------
@@ -47,11 +35,9 @@ class Layer:
 
     # --------------------------------------------------------------------------
     def set_chattr(self, idx, char = '', attr = curses.A_NORMAL):
-        self._mat_chars.set_idx_map(idx, char)
-        self._mat_attrs.set_idx_map(idx, attr)
+        self._mat_chars.set_lookup_value(idx, char)
+        self._mat_attrs.set_lookup_value(idx, attr)
 
-
-    # --------------------------------------------------------------------------
     def set_size(self, h, w):
         self._mat_chars.set_size(h, w)
         self._mat_attrs.set_size(h, w)
@@ -59,18 +45,15 @@ class Layer:
 
 
     # --------------------------------------------------------------------------
-    def add_img(self, y, x, img, overwrite = False):
-        arr = np.load(img).astype(self._dtype) \
-            if isinstance(img, str) else img
+    def load_npy(self, y, x, path_npy, dtype = int, transparency = _glob.MERGE):
+        mat = np.load(path_npy).astype(dtype)
+        self.add_block(y, x, mat, transparency)
 
-        arr = ~arr # [WIP] fix this
+    def add_block(self, y, x, block, transparency = _glob.MERGE):
+        self._mat_chars.load_block(y, x, block, transparency)
+        self._mat_attrs.load_block(y, x, block, transparency)
 
-        self._mat_chars.load_arr(y, x, arr, overwrite)
-        self._mat_attrs.load_arr(y, x, arr, overwrite)
-
-
-    # --------------------------------------------------------------------------
-    def add_text(self, s, y = 0, x = 0, attr = curses.A_NORMAL, overwrite = False, cut: dict[str, str] = {}):
+    def add_text(self, s, y = 0, x = 0, attr = curses.A_NORMAL, transparency = _glob.MERGE, cut: dict[str, str] = {}):
         rows = str(s).split('\n')
         h = len(rows)
         w = max(map(len, rows))
@@ -108,7 +91,7 @@ class Layer:
                 case 'R': chars = tuple(map(lambda row: row[:self.w-xval-v], chars))
                 case  _ : raise ValueError(f"Invalid cut key: '{k}'")
 
-        self._stamp(yval, xval, chars, attrs, overwrite)
+        self._stamp(yval, xval, chars, attrs, transparency)
 
 
     # --------------------------------------------------------------------------
@@ -124,6 +107,12 @@ class Layer:
 
         for i0,i1 in zip(border_idxs[:-1], border_idxs[1:]):
             yield flat_chars[i0:i1], flat_attrs[i0]
+
+
+    # --------------------------------------------------------------------------
+    def _stamp(self, y, x, chars, attrs, transparency):
+        self._mat_chars.stamp(y, x, chars, transparency)
+        self._mat_attrs.stamp(y, x, attrs, transparency)
 
 
 # //////////////////////////////////////////////////////////////////////////////

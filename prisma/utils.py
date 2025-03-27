@@ -1,7 +1,8 @@
+import datetime
 import warnings
-
 from collections import OrderedDict
 
+############################# MOSAIC LAYOUT PARSER #############################
 # ------------------------------------------------------------------------------
 def apply_mask(idxs, mat, char):
     mat_out = tuple(map(
@@ -78,4 +79,20 @@ def mosaic(layout, divider = '\n'):
     return data
 
 
-# ------------------------------------------------------------------------------
+################################# DEBUG LOGGER #################################
+# //////////////////////////////////////////////////////////////////////////////
+class Debug:
+    """Usage: from prisma.utils import Debug; d = Debug("name.log")"""
+    def __init__(self, path: str):
+        self.path = path
+        with open(self.path, 'w') as file:
+            file.write(f"{datetime.datetime.now()}\n\n")
+
+    # --------------------------------------------------------------------------
+    def log(self, *text, sep = ' ', end = '\n'):
+        text = sep.join(map(str, text))
+        with open(self.path, 'a') as file:
+            file.write(text + end)
+
+
+# //////////////////////////////////////////////////////////////////////////////

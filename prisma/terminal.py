@@ -1,16 +1,14 @@
 import curses
-from collections.abc import Callable
 
 from prisma.section import RootSection
+from prisma.utils import Debug; d = Debug("terminal.log")
 
 # //////////////////////////////////////////////////////////////////////////////
 class Terminal:
-    def __init__(self, fps = None):
-        self._no_delay: bool
-        self._nap_ms: int
-        self._wait: Callable
-        self.set_fps(fps)
-
+    def __init__(self):
+        self._no_delay = False
+        self._nap_ms = 0
+        self._wait = lambda: None
         self._running = False
 
         self.char = None
@@ -21,22 +19,24 @@ class Terminal:
 
     # --------------------------------------------------------------------------
     def on_start(self):
-        return # override!
+        return
 
     def on_update(self):
-        return # override!
+        return
 
     def on_end(self):
-        return # override!
+        return
 
     def kill_when(self):
-        return False # override!
+        return False
 
     def kill(self):
         self._running = False
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def run(self):
+    def run(self, fps = None):
+        self.set_fps(fps)
+
         try:
             self.stdscr = curses.initscr()
             curses.noecho(); curses.cbreak()
@@ -46,7 +46,7 @@ class Terminal:
             except: pass
 
             self.root = RootSection(self.stdscr)
-            return self.main()
+            return self._main_loop()
 
         finally:
             if "stdscr" not in self.__dict__: return
@@ -55,7 +55,7 @@ class Terminal:
             curses.endwin()
 
     # --------------------------------------------------------------------------
-    def main(self):
+    def _main_loop(self):
         self.on_start()
         self.stdscr.nodelay(self._no_delay)
 
@@ -82,7 +82,7 @@ class Terminal:
         else:
             self._no_delay = True
             self._nap_ms = int(1000 / fps)
-            self._wait = lambda: curses.napm(self._nap_ms)
+            self._wait = lambda: curses.napms(self._nap_ms)
 
     # --------------------------------------------------------------------------
     def _handle_resize(self):

@@ -1,95 +1,93 @@
 import curses
 
-def log(*x, init = False):
-    path_log = "log.txt"
+import os, sys; sys.path.insert(0, os.getcwd()) # allow imports from root folder
+from prisma.terminal import Terminal
 
-    if init:
-        with open(path_log, 'w') as file:
-            file.write("")
-        return
+# //////////////////////////////////////////////////////////////////////////////
+class Box:
+    def __init__(self, size, idx):
+        self.idx = idx
+        self.size = size
+        self.arr = [[idx for _ in range(size)] for _ in range(size)]
+        self.y = 0
+        self.x = 0
+        self.dy = 0
+        self.dx = 0
 
-    log = f"{' '.join(map(str,x))}\n"
-    with open(path_log, 'a') as file:
-        file.write(log)
+    # --------------------------------------------------------------------------
+    def set_pos(self, y, x):
+        self.y = y
+        self.x = x
 
+    def set_vel(self, dy, dx):
+        self.dy = dy
+        self.dx = dx
 
-def main(stdscr):
-    curses.curs_set(False)
-    curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_CYAN)
-    n = 5
-    y = curses.LINES // 2
-    x = (curses.COLS - n) // 2
+    def get_data(self):
+        return self.y, self.x, self.arr
 
-    y_anim = 2
-    x_anim = 3
-    dy = 1
-    dx = 1
-
-    stdscr.nodelay(True)
-
-
-
-    running = True
-    while running:
-
-        key = stdscr.getch()
-        curses.flushinp()
-
-        match key:
-            case curses.KEY_F1: running = False
-            case 119 | curses.KEY_UP:    y -= 1
-            case 97  | curses.KEY_LEFT:  x -= 1
-            case 115 | curses.KEY_DOWN:  y += 1
-            case 100 | curses.KEY_RIGHT: x += 1
-
-        curses.napms(16)
-
-        curses.update_lines_cols()
-        stdscr.erase()
-        s = ((curses.COLS-n)*' ').join((n*'#' for _ in range(n)))
-
-        ### sanitize coordinates
-        y = max(0, min(y, curses.LINES - n))
-        x = max(0, min(x, curses.COLS  - n))
-        if (y == curses.LINES - n) and (x == curses.COLS - n): s = s[:-1]
+    # --------------------------------------------------------------------------
+    def move(self):
+        self.y = max(0, min(self.y + self.dy, curses.LINES - self.size))
+        self.x = max(0, min(self.x + self.dx, curses.COLS  - self.size))
 
 
-        y_anim += dy
-        x_anim += dx
-
-        if y_anim < 0:
-            y_anim = 0
-            dy = -dy
-        elif y_anim > curses.LINES - n:
-            y_anim = curses.LINES - n
-            dy = -dy
-
-        if x_anim < 0:
-            x_anim = 0
-            dx = -dx
-        elif x_anim > curses.COLS - n:
-            x_anim = curses.COLS - n
-            dx = -dx
-
-        if (y_anim == curses.LINES - n) and (x_anim == curses.COLS - n): s = s[:-1]
-
-        stdscr.addstr(y_anim, x_anim, s, curses.A_DIM)
-        stdscr.addstr(y, x, s, curses.A_BOLD)
-
-        stdscr.addstr(
-            curses.LINES - 1, 0,
-            f"Press F1 to exit {key}",
-            curses.color_pair(1)
-        )
-
-        s = f"({y}, {x}) {curses.LINES} {curses.COLS}"
-        stdscr.addstr(
-            curses.LINES - 1, curses.COLS - len(s) - 1,
-            s,curses.A_REVERSE
-        )
-
-        stdscr.refresh()
+# //////////////////////////////////////////////////////////////////////////////
+class BoxAutonomous(Box):
+    def move(self):
+        super().move()
+        if (self.y == 0) or (self.y == curses.LINES - self.size):
+            self.dy = -self.dy
+        if (self.x == 0) or (self.x == curses.COLS  - self.size):
+            self.dx = -self.dx
 
 
+# //////////////////////////////////////////////////////////////////////////////
+class TUI(Terminal):
+    def on_start(self):
+        curses.curs_set(False)
+        curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_CYAN)
 
-curses.wrapper(main)
+        size = 5
+        self.box_0 = Box(size, idx = 1)
+        self.box_1 = BoxAutonomous(size, idx = 2)
+
+        self.box_0.set_pos(self.h // 2, (self.w - size) // 2)
+        self.box_1.set_vel(1, 1)
+
+        self.canvas = self.root.new_layer()
+        self.canvas.set_chattr(1, '#', curses.A_BOLD)
+        self.canvas.set_chattr(2, '#', curses.A_DIM)
+
+    # --------------------------------------------------------------------------
+    def on_update(self):
+        # curses.flushinp()
+        match self.char:
+            case 119 | curses.KEY_UP:    self.box_0.set_vel(-1,  0)
+            case 97  | curses.KEY_LEFT:  self.box_0.set_vel( 0, -1)
+            case 115 | curses.KEY_DOWN:  self.box_0.set_vel( 1,  0)
+            case 100 | curses.KEY_RIGHT: self.box_0.set_vel( 0,  1)
+            case _: self.box_0.set_vel(0, 0)
+
+        self.box_0.move()
+        self.box_1.move()
+
+        self.canvas.add_block(*self.box_0.get_data())
+        self.canvas.add_block(*self.box_1.get_data())
+
+        y, x, _ = self.box_0.get_data()
+        self.add_text(f"({y}, {x}) {curses.LINES} {curses.COLS}", 'B', 'R', curses.A_REVERSE)
+        self.add_text(f"Press F1 to exit (current key: {self.char})", 'B', 'L', curses.color_pair(1))
+
+    # --------------------------------------------------------------------------
+    def kill_when(self):
+        return self.char == curses.KEY_F1
+
+
+################################################################################
+if __name__ == "__main__":
+    tui = TUI()
+    tui.run(fps = 60)
+
+
+################################################################################

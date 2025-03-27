@@ -1,8 +1,9 @@
 import curses
 from collections import OrderedDict
 
-from prisma.utils.mosaic import mosaic as _mosaic
+from prisma.utils import mosaic as _mosaic
 from prisma.layer import Layer
+from prisma.utils import Debug; d = Debug("section.log")
 
 # //////////////////////////////////////////////////////////////////////////////
 class Section:
@@ -27,36 +28,35 @@ class Section:
     def __repr__(self):
         return f"<Section '{self.name}'>"
 
+
     # --------------------------------------------------------------------------
     def set_parent(self, parent):
         self._parent = parent
 
-    # --------------------------------------------------------------------------
     def add_child(self, section: "Section") -> "Section":
         self._children[section.name] = section
         section.set_parent(self)
         return section
 
-    # --------------------------------------------------------------------------
     def get_child(self, name) -> "Section":
         return self._children[name]
 
-    # --------------------------------------------------------------------------
     def iter_children(self):
         for child in self._children.items():
             yield child
 
-    # --------------------------------------------------------------------------
-    def mosaic(self, layout: str, divider = '\n'):
-        data_hwyx = _mosaic(layout, divider)
-        for char, hwyx in data_hwyx.items():
-            self.add_child(Section(hwyx, name = char))
 
     # --------------------------------------------------------------------------
     def new_layer(self) -> Layer:
         layer = Layer(self.h, self.w)
         self._layers.append(layer)
         return layer
+
+    def mosaic(self, layout: str, divider = '\n'):
+        data_hwyx = _mosaic(layout, divider)
+        for char, hwyx in data_hwyx.items():
+            self.add_child(Section(hwyx, name = char))
+
 
     # --------------------------------------------------------------------------
     def update_hwyx(self):
@@ -125,13 +125,6 @@ class Section:
         for child in self._children.values():
             child.draw()
 
-    # --------------------------------------------------------------------------
-    def set_size(self, h, w):
-        raise TypeError("Can only set absolute size with 'set_size' to an instance of RootSection.")
-
-    def get_size(self): return self.h, self.w
-
-    # --------------------------------------------------------------------------
     def adjust_size_pos(self):
         self.update_hwyx()
 
@@ -146,6 +139,15 @@ class Section:
 
         for child in self._children.values():
             child.adjust_size_pos()
+
+
+
+    # --------------------------------------------------------------------------
+    def set_size(self, h, w):
+        raise TypeError("Can only set absolute size with 'set_size' to an instance of RootSection.")
+
+    def get_size(self): return self.h, self.w
+
 
 
     # --------------------------------------------------------------------------
