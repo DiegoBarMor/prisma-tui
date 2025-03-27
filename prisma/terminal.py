@@ -63,11 +63,13 @@ class Terminal:
         while self._running:
             self._handle_resize()
 
+            # self.stdscr.clear()
             self.root.clear()
             self.on_update()
-            self.root.draw()
+            self.root.draw(self.root)
+            self.root.real_draw()
 
-            self.char = self.stdscr.getch()
+            self.char = self.stdscr.getch() # implicitly calls self.stdscr.refresh()
             if self.kill_when(): self.kill()
             self._wait()
 
@@ -102,6 +104,7 @@ class Terminal:
     # --------------------------------------------------------------------------
     def add_text(self, *args, **kws): self.root.add_text(*args, **kws)
     def draw_layers(self, *args, **kws): self.root.draw_layers(*args, **kws)
+
 
 
 # //////////////////////////////////////////////////////////////////////////////

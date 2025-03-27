@@ -48,6 +48,8 @@ class Matrix(ABC):
         y1 = min(y + len(data)   , self.h)
         x1 = min(x + len(data[0]), self.w)
 
+        d.log(f"Stamping at {y0},{x0} with size {y1-y0}x{x1-x0}")
+
         orig = self._mat[y0:y1]
         modf = data[:y1-y0]
         self._mat[y0:y1] = [func(o,m,x0,x1) for o,m in zip(orig, modf)]
@@ -68,7 +70,7 @@ class Matrix(ABC):
 
 
     # --------------------------------------------------------------------------
-    def _overwrite_row(orig, modf, i0, i1):
+    def _overwrite_row(self, orig, modf, i0, i1):
         return orig[:i0] + modf[:i1-i0] + orig[i1:]
 
     def _overlay_row(self, orig, modf, i0, i1):
@@ -86,7 +88,7 @@ class Matrix(ABC):
         return
 
     @abstractmethod
-    def _merge_row(self, val_orig, val_modf):
+    def _merge_row(self, orig, modf, i0, i1):
         return
 
     @abstractmethod

@@ -15,11 +15,15 @@ class Layer:
 
 
     # --------------------------------------------------------------------------
-    def __add__(self, other: "Layer"):
-        if (self.h != other.h) or (self.w != other.w):
-            raise ValueError("Cannot add layers of different sizes")
+    def add_layer(self, y, x, other: "Layer"):
+        d.log("Stamping (add layer)", y, x)
+        d.log("MASTER")
+        d.log('\n'.join(self._mat_chars._mat))
+        d.log("LAYER")
+        d.log('\n'.join(other._mat_chars._mat))
 
-        self._stamp(0, 0, other._mat_chars._mat, other._mat_attrs._mat, _glob.MERGE)
+
+        self._stamp(y, x, other._mat_chars._mat, other._mat_attrs._mat, _glob.MERGE)
         return self
 
 
@@ -55,10 +59,10 @@ class Layer:
 
     def add_text(self, s, y = 0, x = 0, attr = curses.A_NORMAL, transparency = _glob.MERGE, cut: dict[str, str] = {}):
         rows = str(s).split('\n')
-        h = len(rows)
-        w = max(map(len, rows))
+        h = min(len(rows), self.h)
+        w = min(max(map(len, rows)), self.w)
 
-        chars = [row.ljust(w) for row in rows]
+        chars = [row.ljust(w)[:w] for row in rows[:h]]
         attrs = [[attr for _ in range(w)] for _ in range(h)]
 
         if isinstance(y, str):
@@ -91,11 +95,13 @@ class Layer:
                 case 'R': chars = tuple(map(lambda row: row[:self.w-xval-v], chars))
                 case  _ : raise ValueError(f"Invalid cut key: '{k}'")
 
+        d.log(f"TEXT) y={y}, x={x}, h={h}, self.h={self.h}, w={w}, self.w={self.w}, yval={yval}, xval={xval}: {chars} ")
         self._stamp(yval, xval, chars, attrs, transparency)
 
 
     # --------------------------------------------------------------------------
     def get_strs(self):
+
         flat_chars = ''.join(self._mat_chars._mat)
         flat_attrs = [attr for row in self._mat_attrs._mat for attr in row]
 
@@ -106,6 +112,7 @@ class Layer:
         border_idxs = [0] + [i for i,a in enumerate(attrs_mask, start = 1) if a] + [len(flat_chars)]
 
         for i0,i1 in zip(border_idxs[:-1], border_idxs[1:]):
+            d.log(i0, i1)
             yield flat_chars[i0:i1], flat_attrs[i0]
 
 

@@ -28,11 +28,10 @@ class TUI(Terminal):
     def on_update(self):
         h,w = self.root.get_size()
         match self.char:
-            case curses.KEY_UP:    h -= 1
-            case curses.KEY_LEFT:  w -= 1
-            case curses.KEY_DOWN:  h += 1
-            case curses.KEY_RIGHT: w += 1
-        self.set_size(h, w)
+            case curses.KEY_UP:    self.set_size(h - 1, w    )
+            case curses.KEY_LEFT:  self.set_size(h    , w - 1)
+            case curses.KEY_DOWN:  self.set_size(h + 1, w    )
+            case curses.KEY_RIGHT: self.set_size(h    , w + 1)
 
         self.stdscr.border()
 
@@ -44,12 +43,16 @@ class TUI(Terminal):
         self.lpanel.add_text('\n'.join("LEFT"), 'c', 'c')
         self.rpanel.add_text('\n'.join("RIGHT"), 'c', 'c')
 
-        self.bpanel.add_text("Resize the screen with the arrow keys", 0, 'l', curses.color_pair(1))
-        self.bpanel.add_text("Press F1 to exit", 1, 'l', curses.color_pair(1))
-        self.bpanel.add_text(f"{curses.LINES} {curses.COLS}", 1, 'r', curses.A_REVERSE)
+        for _,sect in self.root.iter_children():
+            if sect is self.canvas: continue
+            sect.do_border()
+        for _,sect in self.canvas.iter_children():
+            sect.do_border()
 
-        for _,sect in self.root.iter_children(): sect.do_border(True)
-        for _,sect in self.canvas.iter_children(): sect.do_border(True)
+        self.bpanel.add_text("Resize the screen with the arrow keys", 0, 'l', curses.color_pair(1), transparency = 0)
+        self.bpanel.add_text("Press F1 to exit", 1, 'l', curses.color_pair(1), transparency = 0)
+        self.bpanel.add_text(f"{curses.LINES} {curses.COLS}", 1, 'r', curses.A_REVERSE, transparency = 0)
+
 
     # --------------------------------------------------------------------------
     def kill_when(self):

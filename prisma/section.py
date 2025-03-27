@@ -4,6 +4,8 @@ from collections import OrderedDict
 from prisma.utils import mosaic as _mosaic
 from prisma.layer import Layer
 from prisma.utils import Debug; d = Debug("section.log")
+import prisma.settings as _glob
+
 
 # //////////////////////////////////////////////////////////////////////////////
 class Section:
@@ -20,9 +22,10 @@ class Section:
         self._win: curses.window = curses.newwin(self.h, self.w, self.y, self.x)
 
         self._layers = [Layer(self.h, self.w)]
-        self._do_border = False
-        self._const_txt = False
         self._drawn = False
+
+        self.master_layer = Layer(self.h, self.w)
+        self.border_layer = Layer(self.h, self.w)
 
     # --------------------------------------------------------------------------
     def __repr__(self):
@@ -44,6 +47,12 @@ class Section:
     def iter_children(self):
         for child in self._children.items():
             yield child
+
+    def iter_layers(self):
+        yield self.master_layer
+        for layer in self._layers:
+            yield layer
+        yield self.border_layer
 
 
     # --------------------------------------------------------------------------
@@ -97,33 +106,28 @@ class Section:
         if y_outbounds > 0: self.y -= y_outbounds
         if x_outbounds > 0: self.x -= x_outbounds
 
+        d.log(f"Section '{self.name}' updated: h={self.h}, w={self.w}, y={self.y}, x={self.x}")
+
 
     # --------------------------------------------------------------------------
     def clear(self):
-        if not self._const_txt:
-            for layer in self._layers:
-                layer.fill_matrix()
+        for layer in self.iter_layers():
+            layer.fill_matrix()
 
         for child in self._children.values():
             child.clear()
 
-    def draw(self):
-        layer = Layer(self.h, self.w)
-        for next_layer in self._layers:
-            layer += next_layer
+    def draw(self, root: "Section" = None):
+        root = self if root is None else root
 
-        idx = 0
-        for chars,attr in layer.get_strs():
-            y,x = divmod(idx, self.w)
-            self.safe_addstr(y, x, chars, attr)
-            idx += len(chars)
+        d.log(f"Drawing {self.name} at {self.y},{self.x} with size {self.h}x{self.w}")
 
-        if self._do_border:
-            self._win.border()
+        for layer in self.iter_layers():
+            root.master_layer.add_layer(self.y, self.x, layer)
 
-        self._win.refresh()
         for child in self._children.values():
-            child.draw()
+            child.draw(root)
+
 
     def adjust_size_pos(self):
         self.update_hwyx()
@@ -134,12 +138,13 @@ class Section:
         try: self._win.mvwin(self.y, self.x)
         except curses.error: pass
 
-        for layer in self._layers:
+        for layer in self.iter_layers():
             layer.set_size(self.h, self.w)
 
         for child in self._children.values():
             child.adjust_size_pos()
 
+        d.log(f"Section '{self.name}' adjusted: h={self.h}, w={self.w}, y={self.y}, x={self.x}")
 
 
     # --------------------------------------------------------------------------
@@ -162,11 +167,26 @@ class Section:
 
 
     # --------------------------------------------------------------------------
-    def do_border(self, bool_val = True):
-        self._do_border = bool_val
+    def do_border(self):
 
-    def const_txt(self, bool_val = True):
-        self._const_txt = bool_val
+        # [TODO] add more customization capabilities
+        ls = '│' # should be curses.ACS_VLINE    # Starting-column side
+        rs = '│' # should be curses.ACS_VLINE    # Ending-column side
+        ts = '─' # should be curses.ACS_HLINE    # First-line side
+        bs = '─' # should be curses.ACS_HLINE    # Last-line side
+        tl = '┌' # should be curses.ACS_ULCORNER # Corner of the first line and the starting column
+        tr = '┐' # should be curses.ACS_URCORNER # Corner of the first line and the ending column
+        bl = '└' # should be curses.ACS_LLCORNER # Corner of the last line and the starting column
+        br = '┘' # should be curses.ACS_LRCORNER # Corner of the last line and the ending column
+
+        h = self.h - 2
+        w = self.w - 2
+        self._layers[-1].add_text('\n'.join((
+            tl + w*ts + tr,
+            *[ls + w*_glob.BLANK_CHAR + rs]*h,
+            bl + w*bs + br,
+        )))
+
 
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -182,15 +202,26 @@ class RootSection(Section):
         self._parent = None
         self._children: OrderedDict[str, Section] = OrderedDict()
         self._layers = [Layer(self.h, self.w)]
-        self._do_border = False
-        self._const_txt = False
         self._drawn = False
+        self.master_layer = Layer(self.h, self.w)
+        self.border_layer = Layer(self.h, self.w)
 
     # --------------------------------------------------------------------------
     def set_size(self, h, w):
         self.h = h
         self.w = w
         self.adjust_size_pos()
+
+
+    def real_draw(self):
+        # self._win.clear()
+
+        idx = 0
+        for chars,attr in self.master_layer.get_strs():
+            y,x = divmod(idx, self.w)
+            self.safe_addstr(y, x, chars, attr)
+            idx += len(chars)
+            d.log(f"Drawing at y={y}, x={x}, chars='{chars}'")
 
 
 # //////////////////////////////////////////////////////////////////////////////
