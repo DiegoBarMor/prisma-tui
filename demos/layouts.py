@@ -45,7 +45,7 @@ class TUI(Terminal):
 
         for _,sect in self.root.iter_children():
             if sect is self.canvas: continue
-            sect.do_border()
+            sect.do_border(last = False)
         for _,sect in self.canvas.iter_children():
             sect.do_border()
 

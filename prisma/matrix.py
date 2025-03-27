@@ -48,8 +48,6 @@ class Matrix(ABC):
         y1 = min(y + len(data)   , self.h)
         x1 = min(x + len(data[0]), self.w)
 
-        d.log(f"Stamping at {y0},{x0} with size {y1-y0}x{x1-x0}")
-
         orig = self._mat[y0:y1]
         modf = data[:y1-y0]
         self._mat[y0:y1] = [func(o,m,x0,x1) for o,m in zip(orig, modf)]

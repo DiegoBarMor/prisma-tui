@@ -24,7 +24,7 @@ class Section:
         self._layers = [Layer(self.h, self.w)]
         self._drawn = False
 
-        self.master_layer = Layer(self.h, self.w)
+        self.main_layer = Layer(self.h, self.w)
         self.border_layer = Layer(self.h, self.w)
 
     # --------------------------------------------------------------------------
@@ -49,7 +49,7 @@ class Section:
             yield child
 
     def iter_layers(self):
-        yield self.master_layer
+        yield self.main_layer
         for layer in self._layers:
             yield layer
         yield self.border_layer
@@ -106,8 +106,6 @@ class Section:
         if y_outbounds > 0: self.y -= y_outbounds
         if x_outbounds > 0: self.x -= x_outbounds
 
-        d.log(f"Section '{self.name}' updated: h={self.h}, w={self.w}, y={self.y}, x={self.x}")
-
 
     # --------------------------------------------------------------------------
     def clear(self):
@@ -120,10 +118,8 @@ class Section:
     def draw(self, root: "Section" = None):
         root = self if root is None else root
 
-        d.log(f"Drawing {self.name} at {self.y},{self.x} with size {self.h}x{self.w}")
-
         for layer in self.iter_layers():
-            root.master_layer.add_layer(self.y, self.x, layer)
+            root.main_layer.add_layer(self.y, self.x, layer)
 
         for child in self._children.values():
             child.draw(root)
@@ -144,8 +140,6 @@ class Section:
         for child in self._children.values():
             child.adjust_size_pos()
 
-        d.log(f"Section '{self.name}' adjusted: h={self.h}, w={self.w}, y={self.y}, x={self.x}")
-
 
     # --------------------------------------------------------------------------
     def set_size(self, h, w):
@@ -163,11 +157,12 @@ class Section:
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def add_text(self, *args, **kwds):
-        self._layers[0].add_text(*args, **kwds)
+        self.main_layer.add_text(*args, **kwds)
 
 
     # --------------------------------------------------------------------------
-    def do_border(self):
+    def do_border(self, last = True):
+        layer = self.border_layer if last else self.main_layer
 
         # [TODO] add more customization capabilities
         ls = '│' # should be curses.ACS_VLINE    # Starting-column side
@@ -181,7 +176,7 @@ class Section:
 
         h = self.h - 2
         w = self.w - 2
-        self._layers[-1].add_text('\n'.join((
+        layer.add_text('\n'.join((
             tl + w*ts + tr,
             *[ls + w*_glob.BLANK_CHAR + rs]*h,
             bl + w*bs + br,
@@ -203,7 +198,7 @@ class RootSection(Section):
         self._children: OrderedDict[str, Section] = OrderedDict()
         self._layers = [Layer(self.h, self.w)]
         self._drawn = False
-        self.master_layer = Layer(self.h, self.w)
+        self.main_layer = Layer(self.h, self.w)
         self.border_layer = Layer(self.h, self.w)
 
     # --------------------------------------------------------------------------
@@ -214,14 +209,11 @@ class RootSection(Section):
 
 
     def real_draw(self):
-        # self._win.clear()
-
         idx = 0
-        for chars,attr in self.master_layer.get_strs():
+        for chars,attr in self.main_layer.get_strs():
             y,x = divmod(idx, self.w)
             self.safe_addstr(y, x, chars, attr)
             idx += len(chars)
-            d.log(f"Drawing at y={y}, x={x}, chars='{chars}'")
 
 
 # //////////////////////////////////////////////////////////////////////////////

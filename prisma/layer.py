@@ -15,15 +15,8 @@ class Layer:
 
 
     # --------------------------------------------------------------------------
-    def add_layer(self, y, x, other: "Layer"):
-        d.log("Stamping (add layer)", y, x)
-        d.log("MASTER")
-        d.log('\n'.join(self._mat_chars._mat))
-        d.log("LAYER")
-        d.log('\n'.join(other._mat_chars._mat))
-
-
-        self._stamp(y, x, other._mat_chars._mat, other._mat_attrs._mat, _glob.MERGE)
+    def add_layer(self, y, x, other: "Layer", transparency = _glob.MERGE):
+        self._stamp(y, x, other._mat_chars._mat, other._mat_attrs._mat, transparency)
         return self
 
 
@@ -95,7 +88,6 @@ class Layer:
                 case 'R': chars = tuple(map(lambda row: row[:self.w-xval-v], chars))
                 case  _ : raise ValueError(f"Invalid cut key: '{k}'")
 
-        d.log(f"TEXT) y={y}, x={x}, h={h}, self.h={self.h}, w={w}, self.w={self.w}, yval={yval}, xval={xval}: {chars} ")
         self._stamp(yval, xval, chars, attrs, transparency)
 
 
@@ -112,7 +104,6 @@ class Layer:
         border_idxs = [0] + [i for i,a in enumerate(attrs_mask, start = 1) if a] + [len(flat_chars)]
 
         for i0,i1 in zip(border_idxs[:-1], border_idxs[1:]):
-            d.log(i0, i1)
             yield flat_chars[i0:i1], flat_attrs[i0]
 
 
