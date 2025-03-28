@@ -11,11 +11,13 @@ class TUI(Terminal):
         curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_CYAN)
         curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_YELLOW)
 
-        self.canvas = self.root.add_child(Section((-6, -10, 3, 5), name = "canvas"))
-        self.tpanel = self.root.add_child(Section((3, 1.0,  0, 0), name = "tpanel"))
-        self.bpanel = self.root.add_child(Section((3, 1.0, -3, 0), name = "bpanel"))
-        self.lpanel = self.root.add_child(Section((-6, 5, 3, 0 ), name = "lpanel"))
-        self.rpanel = self.root.add_child(Section((-6, 5, 3, -3), name = "rpanel"))
+        self.names = ["canvas", "tpanel", "bpanel", "lpanel", "rpanel"]
+
+        self.canvas = self.root.add_child(Section(-6, -10, 3, 5))
+        self.tpanel = self.root.add_child(Section(3, 1.0,  0, 0))
+        self.bpanel = self.root.add_child(Section(3, 1.0, -3, 0))
+        self.lpanel = self.root.add_child(Section(-6, 5, 3, 0 ))
+        self.rpanel = self.root.add_child(Section(-6, 5, 3, -3))
 
         self.canvas.mosaic('\n'.join([
             "aaab",
@@ -33,20 +35,18 @@ class TUI(Terminal):
             case curses.KEY_DOWN:  self.set_size(h + 1, w    )
             case curses.KEY_RIGHT: self.set_size(h    , w + 1)
 
-        self.stdscr.border()
-
-        for char,sect in self.canvas.iter_children():
-            sect.add_text(f"{char}: {sect._win.getmaxyx()}, {sect._win.getbegyx()}", 'c', 'c')
+        for name,sect in zip(self.names, self.canvas.iter_children()):
+            sect.add_text(f"{name}: {sect._win.getmaxyx()}, {sect._win.getbegyx()}", 'c', 'c')
 
         self.tpanel.add_text("TOP", 'c', 'c')
         self.bpanel.add_text("BOTTOM", 'c', 'c')
         self.lpanel.add_text('\n'.join("LEFT"), 'c', 'c')
         self.rpanel.add_text('\n'.join("RIGHT"), 'c', 'c')
 
-        for _,sect in self.root.iter_children():
+        for sect in self.root.iter_children():
             if sect is self.canvas: continue
             sect.do_border(last = False)
-        for _,sect in self.canvas.iter_children():
+        for sect in self.canvas.iter_children():
             sect.do_border()
 
         self.bpanel.add_text("Resize the screen with the arrow keys", 0, 'l', curses.color_pair(1), transparency = 0)

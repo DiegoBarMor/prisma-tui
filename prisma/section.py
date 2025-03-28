@@ -9,43 +9,49 @@ import prisma.settings as _glob
 
 # //////////////////////////////////////////////////////////////////////////////
 class Section:
-    def __init__(self, hwyx, name = '', parent = None) -> "Section":
-        self._hwyx = hwyx
-        self._parent: Section = parent
-        self._children: OrderedDict[str, Section] = OrderedDict()
-
-        self.name = name
+    def __init__(self, h: int, w: int, y: int, x: int):
+        # self._hwyx = h,w,y,x
+        self.hrel = h
+        self.wrel = w
+        self.yrel = y
+        self.xrel = x
         self.h: int; self.w: int
         self.y: int; self.x: int
+        self._children: list[Section] = []
+        self._layers = []
+
+        self._parent = None
+
         self.update_hwyx()
 
+
+        self._is_root = False
         self._win: curses.window = curses.newwin(self.h, self.w, self.y, self.x)
-
-        self._layers = [Layer(self.h, self.w)]
-        self._drawn = False
-
+        
         self.main_layer = Layer(self.h, self.w)
         self.border_layer = Layer(self.h, self.w)
 
     # --------------------------------------------------------------------------
-    def __repr__(self):
-        return f"<Section '{self.name}'>"
 
-
+    @classmethod
+    def init_root(cls, stdscr: curses.window):
+        root = cls(1.0, 1.0, 0, 0)
+        root._is_root = True
+        root._win = stdscr
+        return root
+    
     # --------------------------------------------------------------------------
     def set_parent(self, parent):
         self._parent = parent
+        # self.update_hwyx()
 
     def add_child(self, section: "Section") -> "Section":
-        self._children[section.name] = section
+        self._children.append(section)
         section.set_parent(self)
         return section
 
-    def get_child(self, name) -> "Section":
-        return self._children[name]
-
     def iter_children(self):
-        for child in self._children.items():
+        for child in self._children:
             yield child
 
     def iter_layers(self):
@@ -62,9 +68,12 @@ class Section:
         return layer
 
     def mosaic(self, layout: str, divider = '\n'):
-        data_hwyx = _mosaic(layout, divider)
-        for char, hwyx in data_hwyx.items():
-            self.add_child(Section(hwyx, name = char))
+        section_dict = {}
+        for char, hwyx in _mosaic(layout, divider).items():
+            section = Section(*hwyx)
+            self.add_child(section)
+            section_dict[char] = section
+        return section_dict
 
 
     # --------------------------------------------------------------------------
@@ -74,7 +83,10 @@ class Section:
             self.y, self.x = 0, 0
             return
 
-        h,w,y,x = self._hwyx
+        h = self.hrel
+        w = self.wrel
+        y = self.yrel
+        x = self.xrel
 
         if isinstance(h, float):
             self.h = round(h * self._parent.h)
@@ -112,17 +124,23 @@ class Section:
         for layer in self.iter_layers():
             layer.fill_matrix()
 
-        for child in self._children.values():
+        for child in self.iter_children():
             child.clear()
 
-    def draw(self, root: "Section" = None):
-        root = self if root is None else root
-
+    def draw(self, root: "Section"):
         for layer in self.iter_layers():
             root.main_layer.add_layer(self.y, self.x, layer)
 
-        for child in self._children.values():
+        for child in self.iter_children():
             child.draw(root)
+
+        if not self._is_root: return
+
+        idx = 0
+        for chars,attr in self.main_layer.get_strs():
+            y,x = divmod(idx, self.w)
+            self.safe_addstr(y, x, chars, attr)
+            idx += len(chars)
 
 
     def adjust_size_pos(self):
@@ -137,15 +155,18 @@ class Section:
         for layer in self.iter_layers():
             layer.set_size(self.h, self.w)
 
-        for child in self._children.values():
+        for child in self.iter_children():
             child.adjust_size_pos()
 
 
     # --------------------------------------------------------------------------
     def set_size(self, h, w):
-        raise TypeError("Can only set absolute size with 'set_size' to an instance of RootSection.")
+        self.h = h
+        self.w = w
+        self.adjust_size_pos()
 
-    def get_size(self): return self.h, self.w
+    def get_size(self): 
+        return self.h, self.w
 
 
 
@@ -181,39 +202,6 @@ class Section:
             *[ls + w*_glob.BLANK_CHAR + rs]*h,
             bl + w*bs + br,
         )))
-
-
-
-# //////////////////////////////////////////////////////////////////////////////
-class RootSection(Section):
-    def __init__(self, stdscr: curses.window):
-        self._win = stdscr
-
-        self.name = "root"
-        self.h, self.w = stdscr.getmaxyx()
-        self.y, self.x = stdscr.getbegyx()
-
-        self._hwyx = (1.0, 1.0, 0, 0)
-        self._parent = None
-        self._children: OrderedDict[str, Section] = OrderedDict()
-        self._layers = [Layer(self.h, self.w)]
-        self._drawn = False
-        self.main_layer = Layer(self.h, self.w)
-        self.border_layer = Layer(self.h, self.w)
-
-    # --------------------------------------------------------------------------
-    def set_size(self, h, w):
-        self.h = h
-        self.w = w
-        self.adjust_size_pos()
-
-
-    def real_draw(self):
-        idx = 0
-        for chars,attr in self.main_layer.get_strs():
-            y,x = divmod(idx, self.w)
-            self.safe_addstr(y, x, chars, attr)
-            idx += len(chars)
 
 
 # //////////////////////////////////////////////////////////////////////////////
