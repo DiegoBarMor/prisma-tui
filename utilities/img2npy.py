@@ -1,16 +1,16 @@
 import sys
 import json
 import numpy as np
-from PIL import Image as PILImage
+from PIL import Image
 from pathlib import Path
 from collections import Counter
 
 import os, sys; sys.path.insert(0, os.getcwd()) # allow imports from root folder
-from prisma.image import Image as PrismaImage
+from prisma.palette import Palette
 
 
 def open_img(path_img: Path) -> np.array:
-    img = PILImage.open(path_img).convert("RGBA")
+    img = Image.open(path_img).convert("RGBA")
     return np.array(img)
 
 def load_palette(path_json: Path) -> np.array:
@@ -34,10 +34,6 @@ def n_unique(arr: np.array) -> int:
 
 def colors2strings(arr: np.array) -> np.array:
     return np.array([f"{r},{g},{b}" for r,g,b in arr.reshape(-1,3)], dtype = str)
-    # s = arr.astype("<U3")
-    # comma = np.full(arr.shape[:-1], ',', dtype = "<U3")
-    # print(s.dtype, comma.dtype)
-    # return (s[..., 0] + comma + s[..., 1] + comma + s[..., 2]).astype("<U11")
 
 def strings2colors(strs: list[str]) -> np.array:
     return np.array([s.split(',') for s in strs], dtype = int)
@@ -63,11 +59,6 @@ def to_palette_values(img: np.array, palette: np.array) -> np.array:
 
     idxs[alpha < 128] = 0 # 0 represents transparent pixels
 
-    # x = rgb.astype(str)
-    # x = x[:,:,0]+','+x[:,:,1]+','+x[:,:,2]
-    # x = x[x != "0,0,0"]
-    # print(x.flatten())
-    
     print(f"Converted img from {n_unique(colors2strings(rgb))} colors to {n_unique(idxs[idxs > 0])} palette values")   
     return idxs 
     
@@ -80,22 +71,16 @@ def generate_palette(img: np.array) -> np.array:
     c = Counter(colors2strings(rgb))
     colors = [t[0] for t in sorted(c.items(), key = lambda t: t[1], reverse = True)]
 
-
     
-    # palette = np.array((248,3), dtype = int)
     palette = strings2colors(colors)[:248]
     print(f"Extracted {len(palette)}/{len(colors)} colors into palette")   
-    # print(rgb.shape, rgb)
-    # print(c)
-    # print(len(c))
-    # print(*colors, sep='\n')
-    # print(palette)
     return palette
     
 
-mode = sys.argv[1]
-path_img = Path(sys.argv[2])
-path_palette = "tests/cat.json"
+# mode = sys.argv[1]
+# path_img = Path(sys.argv[2])
+path_img = Path("demos/data/cat.png")
+path_palette = "demos/data/cat.json"
 path_pri = path_img.with_suffix(".pri")
 
 img = open_img(path_img)
@@ -110,26 +95,17 @@ pal = load_palette(path_palette)
 arr = to_palette_values(img, pal)
 
 chars = np.zeros_like(arr, dtype = str)
-chars[arr > 0] = '*'
+chars[arr > 0] = '.'
 chars[arr == 0] = ' '
 chars = [''.join(row) for row in chars]
-print(chars)
-print(arr)
+print(*chars, sep= '\n')
+# print(arr)
+print(f"  fg:\n{'\n'.join(' '.join(f'{x:2}' for x in row) for row in arr)}")
 
-PrismaImage().save_pri(
+
+Palette().save_pri(
     path_img.with_suffix(".pri"),
     chars = chars,
-    fg = np.zeros_like(arr),
+    fg = np.full_like(arr, 0),
     bg = arr
 )
-
-# save_npy(path_npy, npy)
-
-# save_npy(path_img, alpha > 128)
-
-# print(rgb)
-
-
-# palette += 8 
-
-# print(palette)

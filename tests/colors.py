@@ -1,17 +1,6 @@
 import json
 import curses
 
-
-# 0: curses.COLOR_BLACK
-# 1: curses.COLOR_RED
-# 2: curses.COLOR_GREEN
-# 3: curses.COLOR_YELLOW
-# 4: curses.COLOR_BLUE
-# 5: curses.COLOR_MAGENTA
-# 6: curses.COLOR_CYAN
-# 7: curses.COLOR_WHITE
-
-
 def main(stdscr: curses.window):
     path_palette = "tests/palette.json"
     with open(path_palette, 'r') as file:

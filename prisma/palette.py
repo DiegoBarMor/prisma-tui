@@ -3,9 +3,18 @@ import curses
 from prisma import utils
 from prisma.utils import Debug; d = Debug("logs/image.log")
 
+
 # //////////////////////////////////////////////////////////////////////////////
-class Image:
+class Palette:
     RESERVED_CURSES_COLORS = 8
+    #   0: curses.COLOR_BLACK
+    #   1: curses.COLOR_RED
+    #   2: curses.COLOR_GREEN
+    #   3: curses.COLOR_YELLOW
+    #   4: curses.COLOR_BLUE
+    #   5: curses.COLOR_MAGENTA
+    #   6: curses.COLOR_CYAN
+    #   7: curses.COLOR_WHITE
     MAX_PALETTE_COLORS = 256 - RESERVED_CURSES_COLORS
 
     # --------------------------------------------------------------------------
@@ -24,18 +33,18 @@ class Image:
 
     # --------------------------------------------------------------------------
     def load_pri(self, path_pri: str) -> None:
-        with open(path_pri, "rb") as file:
+        with open(path_pri, "rb") as file: 
             h = int.from_bytes(file.read(2), byteorder="little")
             w = int.from_bytes(file.read(2), byteorder="little")           
-            
+            nchars = h * (w + 1) - 1 # +1 for breaklines (except the last one)
+
             file.read(1) # skip a breakline character
-            chars = file.read(h*w).decode("utf-8")           
+            chars = file.read(nchars).decode("utf-8")           
             file.read(1) # skip a breakline character
             
             bg = [[int(file.read(1)[0]) for _ in range(w)] for _ in range(h)]
             fg = [[int(file.read(1)[0]) for _ in range(w)] for _ in range(h)]
             
-        # return h, w, chars, bg, fg
         return chars, bg, fg
 
     # --------------------------------------------------------------------------
@@ -57,36 +66,25 @@ class Image:
             file.write('\n'.join(chars).encode("utf-8"))
             file.write(b'\n')
             
-            for row in bg: file.write(bytes(row))
-            for row in fg: file.write(bytes(row))
+            for row in bg: file.write(bytes(int(x) for x in row))
+            for row in fg: file.write(bytes(int(x) for x in row))
 
     # --------------------------------------------------------------------------
     def setup_pri(self, path_pri: str) -> None:
-        chars, mat_bg, mat_fg = self.load_pri(path_pri)
+        string, mat_bg, mat_fg = self.load_pri(path_pri)
 
-        for row_bg, row_fg in zip(mat_bg, mat_fg):
-            for bg, fg in zip(row_bg, row_fg):
-                pair = bg, fg
+        chars = string.split('\n')
+        attrs = [[0 for _ in row] for row in mat_fg]
+        for i,(row_fg,row_bg) in enumerate(zip(mat_fg, mat_bg)):
+            for j,pair in enumerate(zip(row_fg,row_bg)):
                 idx = self.loaded_pairs.get(pair)
                 if idx is None:
                     idx = len(self.loaded_pairs) + 1
                     self.loaded_pairs[pair] = idx
-                    curses.init_pair(idx, bg, fg)
-        
-        mat_attrs = [list(map(lambda c: curses.color_pair(c), row)) for row in mat_fg]
-        mat_chars = chars.split('\n')
+                    curses.init_pair(idx, *pair)
+                attrs[i][j] = curses.color_pair(idx)
 
-        d.log(*mat_attrs, sep = '\n')
-        d.log(*mat_chars, sep = '\n')
-
-    # for i, bg_fg in enumerate(pairs):
-    #     idx = self.loaded_pairs.get(bg_fg)
-    #     if idx is None:
-    #         idx = len(self.loaded_pairs) + 1
-
-    #     curses.init_pair(i + 1, *bg_fg)
-    #     self.loaded_pairs[bg_fg] = i + 1
-    #     self.root.set_chattr(i + 1, '#', curses.color_pair(i + 1))
+        return chars, attrs
 
 
 # //////////////////////////////////////////////////////////////////////////////

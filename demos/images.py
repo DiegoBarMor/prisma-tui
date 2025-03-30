@@ -9,33 +9,38 @@ import numpy as np
 class TUI(Terminal):
     def on_start(self):
         curses.curs_set(False)
-        curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_CYAN)
-        curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_YELLOW)
 
         self.bg0 = self.root.new_layer()
         self.bg1 = self.root.new_layer()
         self.img = self.root.new_layer()
         self.txt = self.root.new_layer()
 
-        self._pri.load_palette("demos/data/cat.json")
-        self._pri.setup_pri("demos/data/cat.pri")
-        # exit()
+        self.palette.load_palette("demos/data/cat.json")
+        self.chars_cat, self.attrs_cat = self.palette.setup_pri("demos/data/cat.pri")
 
-        self.bg0.set_chattr(1, '.', curses.A_BOLD)
-        self.bg1.set_chattr(1, ':', curses.A_DIM)
-        self.img.set_chattr(1, '#', curses.color_pair(2))
+        noise_0 = np.random.random((curses.LINES, curses.COLS)) < 0.2
+        noise_1 = np.random.random((curses.LINES, curses.COLS)) < 0.2
 
-        self.effect0 = np.random.random((curses.LINES, curses.COLS)) < 0.2
-        self.effect1 = np.random.random((curses.LINES, curses.COLS)) < 0.2
+        self.chars_noise_0 = np.full_like(noise_0, ' ', dtype = "U1")
+        self.attrs_noise_0 = np.full_like(noise_0, curses.A_NORMAL, dtype = int)
+        self.chars_noise_0[noise_0] = '.'
+        self.attrs_noise_0[noise_0] = curses.A_BOLD
 
+        self.chars_noise_1 = np.full_like(noise_1, ' ', dtype = "U1")
+        self.attrs_noise_1 = np.full_like(noise_1, curses.A_NORMAL, dtype = int)
+        self.chars_noise_1[noise_1] = '`'
+        self.attrs_noise_1[noise_1] = curses.A_DIM
+
+        self.menu_pair = len(self.palette.loaded_pairs) + 1
+        curses.init_pair(self.menu_pair, curses.COLOR_BLACK, curses.COLOR_CYAN)
 
     # --------------------------------------------------------------------------
     def on_update(self):
-        self.bg0.add_block(0, 0, self.effect0)
-        self.bg1.add_block(0, 0, self.effect1)
-        self.img.load_npy(2, 3, "demos/data/cat.npy")
+        self.bg0.add_block(0, 0, self.chars_noise_0, self.attrs_noise_0)
+        self.bg1.add_block(0, 0, self.chars_noise_1, self.attrs_noise_1)
+        self.img.add_block(1, 2, self.chars_cat, self.attrs_cat)
 
-        self.txt.add_text('b','l', "Press F1 to exit", curses.color_pair(1))
+        self.txt.add_text('b','l', "Press F1 to exit", curses.color_pair(self.menu_pair))
         self.txt.add_text('t','r', f"{curses.LINES} {curses.COLS}", curses.A_REVERSE)
 
 

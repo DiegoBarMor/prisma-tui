@@ -1,9 +1,0 @@
-import curses
-
-OVERWRITE = 0
-OVERLAY = 1
-MERGE = 2
-
-BLANK_CHAR = ' '
-BLANK_ATTR = curses.A_NORMAL
-LENGHT_VALUE_LOOKUP = 256

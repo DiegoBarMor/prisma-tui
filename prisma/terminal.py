@@ -1,8 +1,21 @@
 import curses
+from dataclasses import dataclass
 
-from prisma.image import Image
+from prisma.palette import Palette
 from prisma.section import Section
 from prisma.utils import Debug; d = Debug("logs/terminal.log")
+
+# //////////////////////////////////////////////////////////////////////////////
+@dataclass(frozen = True)
+class Constants:
+    OVERWRITE = 0
+    OVERLAY = 1
+    MERGE = 2
+
+    BLANK_CHAR = ' '
+    BLANK_ATTR = curses.A_NORMAL
+    LENGHT_VALUE_LOOKUP = 256
+
 
 # //////////////////////////////////////////////////////////////////////////////
 class Terminal:
@@ -18,7 +31,8 @@ class Terminal:
         self.h: int = 0
         self.w: int = 0
 
-        self._pri: Image = Image()
+        self.palette: Palette = Palette()
+        self.consts = Constants()
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -105,9 +119,6 @@ class Terminal:
 
         try: self.stdscr.resize(self.h, self.w)
         except curses.error: pass
-
-        # try: self.stdscr.mvwin(0, 0)
-        # except curses.error: pass
 
         self.on_resize()
 

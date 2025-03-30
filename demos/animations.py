@@ -5,10 +5,10 @@ from prisma.terminal import Terminal
 
 # //////////////////////////////////////////////////////////////////////////////
 class Box:
-    def __init__(self, size, idx):
-        self.idx = idx
+    def __init__(self, size, char, attr):
         self.size = size
-        self.arr = [[idx for _ in range(size)] for _ in range(size)]
+        self.chars = [[char for _ in range(size)] for _ in range(size)]
+        self.attrs = [[attr for _ in range(size)] for _ in range(size)]
         self.y = 0
         self.x = 0
         self.dy = 0
@@ -24,7 +24,7 @@ class Box:
         self.dx = dx
 
     def get_data(self):
-        return self.y, self.x, self.arr
+        return self.y, self.x, self.chars, self.attrs
 
     # --------------------------------------------------------------------------
     def move(self):
@@ -49,15 +49,13 @@ class TUI(Terminal):
         curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_CYAN)
 
         size = 5
-        self.box_0 = Box(size, idx = 1)
-        self.box_1 = BoxAutonomous(size, idx = 2)
+        self.box_0 = Box(size, '#', curses.A_BOLD)
+        self.box_1 = BoxAutonomous(size, '*', curses.A_DIM)
 
         self.box_0.set_pos(self.h // 2, (self.w - size) // 2)
         self.box_1.set_vel(1, 1)
 
         self.canvas = self.root.new_layer()
-        self.canvas.set_chattr(1, '#', curses.A_BOLD)
-        self.canvas.set_chattr(2, '#', curses.A_DIM)
 
     # --------------------------------------------------------------------------
     def on_update(self):
@@ -77,7 +75,7 @@ class TUI(Terminal):
         self.canvas.add_block(*self.box_0.get_data())
         self.canvas.add_block(*self.box_1.get_data())
 
-        y, x, _ = self.box_0.get_data()
+        y, x, _, _ = self.box_0.get_data()
         self.add_text('b','r', f"({y}, {x}) {curses.LINES} {curses.COLS}", curses.A_REVERSE)
         self.add_text('b','l', f"Press F1 to exit (current key: {self.char})", curses.color_pair(1))
 

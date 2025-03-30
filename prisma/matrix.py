@@ -1,21 +1,22 @@
 from abc import ABC, abstractmethod
 
-import prisma.settings as _glob
 from prisma.utils import Debug; d = Debug("logs/matrix.log")
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING: from layer import Layer
 
 # //////////////////////////////////////////////////////////////////////////////
 class Matrix(ABC):
-    BLANK = None
-    def __init__(self, h, w):
-        self.h = h
-        self.w = w
+    def __init__(self, layer: "Layer"):
+        self.h = layer.h
+        self.w = layer.w
+        self.layer = layer
         self._mat = []
-        self._value_lookup = [self.BLANK for _ in range(_glob.LENGHT_VALUE_LOOKUP)]
 
+        self.consts = layer.consts
+        self.BLANK: int
+        
     # --------------------------------------------------------------------------
-    def set_lookup_value(self, idx, val):
-        self._value_lookup[idx] = val
-
     def set_size(self, h, w):
         if   h < self.h: self._remove_rows(h)
         elif h > self.h: self._add_rows(h - self.h)
@@ -39,9 +40,9 @@ class Matrix(ABC):
         if (y >= self.h) or (x >= self.w): return
 
         match transparency:
-            case _glob.MERGE:     func = self._merge_row
-            case _glob.OVERLAY:   func = self._overlay_row
-            case _glob.OVERWRITE: func = self._overwrite_row
+            case self.consts.MERGE:     func = self._merge_row
+            case self.consts.OVERLAY:   func = self._overlay_row
+            case self.consts.OVERWRITE: func = self._overwrite_row
             case _: raise ValueError()
 
         y0 = y; x0 = x
@@ -50,6 +51,7 @@ class Matrix(ABC):
 
         orig = self._mat[y0:y1]
         modf = data[:y1-y0]
+
         self._mat[y0:y1] = [func(o,m,x0,x1) for o,m in zip(orig, modf)]
 
 
@@ -90,20 +92,20 @@ class Matrix(ABC):
         return
 
     @abstractmethod
-    def load_block(self, y, x, arr, transparency):
+    def load_block(self, y, x, data, transparency):
         return
 
 
 # //////////////////////////////////////////////////////////////////////////////
 class MatrixChars(Matrix):
-    BLANK = _glob.BLANK_CHAR
-    def __init__(self, h, w):
-        super().__init__(h, w)
-        self._add_rows(h)
+    def __init__(self, layer: "Layer"):
+        super().__init__(layer)
+        self.BLANK = self.consts.BLANK_CHAR
+        self._add_rows(self.h)
 
     # ------------------------------------------------------------------------------
-    def load_block(self, y, x, arr, transparency):
-        data = [''.join(self._value_lookup[i] for i in row) for row in arr]
+    def load_block(self, y, x, data, transparency):
+        # data = [''.join(self._value_lookup[i] for i in row) for row in arr]
         self.stamp(y, x, data, transparency)
 
     def _new_subrow(self, length, val = None):
@@ -116,14 +118,14 @@ class MatrixChars(Matrix):
 
 # //////////////////////////////////////////////////////////////////////////////
 class MatrixAttrs(Matrix):
-    BLANK = _glob.BLANK_ATTR
-    def __init__(self, h, w):
-        super().__init__(h, w)
-        self._add_rows(h)
+    def __init__(self, layer: "Layer"):
+        super().__init__(layer)
+        self.BLANK = self.consts.BLANK_ATTR
+        self._add_rows(self.h)
 
     # ------------------------------------------------------------------------------
-    def load_block(self, y, x, arr, transparency):
-        data = [[self._value_lookup[i] for i in row] for row in arr]
+    def load_block(self, y, x, data, transparency):
+        # data = [[self._value_lookup[i] for i in row] for row in arr]
         self.stamp(y, x, data, transparency)
 
     def _new_subrow(self, length, val = None):

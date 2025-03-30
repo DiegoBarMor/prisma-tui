@@ -1,39 +1,36 @@
 import curses
-from collections import OrderedDict
 
 from prisma.utils import mosaic as _mosaic
 from prisma.layer import Layer
 from prisma.utils import Debug; d = Debug("logs/section.log")
-import prisma.settings as _glob
 
 from typing import TYPE_CHECKING
-if TYPE_CHECKING: from terminal import Terminal
+if TYPE_CHECKING: from terminal import Terminal, Constants
 
 # //////////////////////////////////////////////////////////////////////////////
 class Section:
     def __init__(self, term: "Terminal", is_root = False):
-    # def __init__(self, h: int, w: int, y: int, x: int, term: "Terminal" = None):
-        # self._hwyx = h,w,y,x
         self.hrel: int = 1.0
         self.wrel: int = 1.0
         self.yrel: int = 0
         self.xrel: int = 0
 
+        self.consts = term.consts
         self._parent = None
         self._children: list[Section] = []
         self._layers = []
-        self._term: Terminal = term
+        self.term: Terminal = term
 
 
-        self._is_root = False
+        self._is_root = is_root
         
-        # self.h, self.w = curses.LINES, curses.COLS
-        # self.y, self.x = 0, 0
-        
+
         self.update_hwyx()
 
-        self.main_layer = Layer(self.h, self.w)
-        self.border_layer = Layer(self.h, self.w)
+        self.main_layer = Layer(self)
+        self.border_layer = Layer(self)
+
+
 
 
     # --------------------------------------------------------------------------
@@ -43,7 +40,7 @@ class Section:
         self.update_hwyx()
 
     def add_child(self, h: int, w: int, y: int, x: int) -> "Section":
-        child = Section(self._term)
+        child = Section(self.term)
         child.hrel = h
         child.wrel = w
         child.yrel = y
@@ -64,7 +61,7 @@ class Section:
 
     # --------------------------------------------------------------------------
     def new_layer(self) -> Layer:
-        layer = Layer(self.h, self.w)
+        layer = Layer(self)
         self._layers.append(layer)
         return layer
 
@@ -129,18 +126,10 @@ class Section:
 
     def draw(self):
         for layer in self.iter_layers():
-            self._term.root.main_layer.add_layer(self.y, self.x, layer)
+            self.term.root.main_layer.add_layer(self.y, self.x, layer)
 
         for child in self.iter_children():
             child.draw()
-
-        # if not self._is_root: return
-
-        # idx = 0
-        # for chars,attr in self.main_layer.get_strs():
-        #     y,x = divmod(idx, self.w)
-        #     self.safe_addstr(y, x, chars, attr)
-        #     idx += len(chars)
 
 
     def adjust_size_pos(self):
@@ -172,12 +161,6 @@ class Section:
         return self.y, self.x
 
 
-    # --------------------------------------------------------------------------
-    # def safe_addstr(self, y, x, s, attr = curses.A_NORMAL):
-    #     try: self._win.addstr(y, x, s, attr)
-    #     except curses.error: pass # ignore out of bounds error
-
-
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def add_text(self, *args, **kwds):
         self.main_layer.add_text(*args, **kwds)
@@ -187,16 +170,17 @@ class Section:
     def do_border(self,
         ls = '│', rs = '│', ts = '─', bs = '─',
         tl = '┌', tr = '┐', bl = '└', br = '┘',
-        attr = _glob.BLANK_ATTR, last = True
+        attr = None, last = True
     ):
         # [TODO] apply the attr
+        if attr is None: attr = self.consts.BLANK_ATTR
 
         h = self.h - 2
         w = self.w - 2
         layer = self.border_layer if last else self.main_layer
         layer.add_text(0,0, '\n'.join((
             tl + w*ts + tr,
-            *[ls + w*_glob.BLANK_CHAR + rs]*h,
+            *[ls + w*self.consts.BLANK_CHAR + rs]*h,
             bl + w*bs + br,
         )))
 

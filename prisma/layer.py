@@ -1,22 +1,31 @@
 import curses
-import numpy as np
 
 from prisma.matrix import MatrixChars, MatrixAttrs
-import prisma.settings as _glob
 from prisma.utils import Debug; d = Debug("logs/layer.log")
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING: from section import Section
 
 # //////////////////////////////////////////////////////////////////////////////
 class Layer:
-    def __init__(self, h, w):
-        self.h = h
-        self.w = w
-        self._mat_chars = MatrixChars(h, w)
-        self._mat_attrs = MatrixAttrs(h, w)
+    def __init__(self, sect: "Section"):
+        self.h = sect.h
+        self.w = sect.w
+        self.sect = sect
+        self.consts = sect.consts
+        self._mat_chars = MatrixChars(self)
+        self._mat_attrs = MatrixAttrs(self)
 
 
     # --------------------------------------------------------------------------
-    def add_layer(self, y, x, other: "Layer", transparency = _glob.MERGE):
-        self._stamp(y, x, other._mat_chars._mat, other._mat_attrs._mat, transparency)
+    def add_layer(self, y, x, other: "Layer", transparency = None):
+        if transparency is None:
+            transparency = other.consts.MERGE
+        self._stamp(y, x, 
+            other._mat_chars._mat, 
+            other._mat_attrs._mat, 
+            transparency
+        )
         return self
 
 
@@ -31,10 +40,6 @@ class Layer:
 
 
     # --------------------------------------------------------------------------
-    def set_chattr(self, idx, char = '', attr = curses.A_NORMAL):
-        self._mat_chars.set_lookup_value(idx, char)
-        self._mat_attrs.set_lookup_value(idx, attr)
-
     def set_size(self, h, w):
         self._mat_chars.set_size(h, w)
         self._mat_attrs.set_size(h, w)
@@ -42,16 +47,20 @@ class Layer:
 
 
     # --------------------------------------------------------------------------
-    def load_npy(self, y, x, path_npy, dtype = int, transparency = _glob.MERGE):
-        mat = np.load(path_npy).astype(dtype)
-        self.add_block(y, x, mat, transparency)
+    def add_block(self, y, x, chars, attrs = None, transparency = None):
+        if attrs is None: 
+            attrs = [[self.consts.BLANK_ATTR for _ in range(self.w)] for _ in range(self.h)]
+        elif isinstance(attrs, int):
+            attrs = [[attrs for _ in range(self.w)] for _ in range(self.h)]
 
-    def add_block(self, y, x, block, transparency = _glob.MERGE):
-        self._mat_chars.load_block(y, x, block, transparency)
-        self._mat_attrs.load_block(y, x, block, transparency)
+        if transparency is None: transparency = self.consts.MERGE
+        self._mat_chars.load_block(y, x, chars, transparency)
+        self._mat_attrs.load_block(y, x, attrs, transparency)
 
-    def add_text(self, y, x, s, attr = curses.A_NORMAL, transparency = _glob.MERGE, cut: dict[str, str] = {}):
-        rows = str(s).split('\n')
+    def add_text(self, y, x, string, attr = None, transparency = None, cut: dict[str, str] = {}):
+        if attr is None: attr = self.consts.BLANK_ATTR
+        if transparency is None: transparency = self.consts.MERGE
+        rows = str(string).split('\n')
         h = min(len(rows), self.h)
         w = min(max(map(len, rows)), self.w)
 
