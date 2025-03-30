@@ -11,12 +11,12 @@ class TUI(Terminal):
 
     # --------------------------------------------------------------------------
     def on_update(self):
-        self.add_text(f"{curses.LINES} lines, {curses.COLS} cols", 'C', 'C', curses.A_REVERSE)
-        self.add_text(f"Key pressed: {self.char}", "C+1", 'C', curses.A_BOLD)
-        self.add_text("Press F1 to exit", 'B', 'L', curses.color_pair(1))
+        self.add_text('c','c', f"{curses.LINES} lines, {curses.COLS} cols", curses.A_REVERSE)
+        self.add_text("c+1",'c', f"Key pressed: {self.char}", curses.A_BOLD)
+        self.add_text('b','l', "Press F1 to exit", curses.color_pair(1))
 
     # --------------------------------------------------------------------------
-    def kill_when(self):
+    def should_stop(self):
         return self.char == curses.KEY_F1
 
 

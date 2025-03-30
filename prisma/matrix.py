@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 import prisma.settings as _glob
-from prisma.utils import Debug; d = Debug("matrix.log")
+from prisma.utils import Debug; d = Debug("logs/matrix.log")
 
 # //////////////////////////////////////////////////////////////////////////////
 class Matrix(ABC):

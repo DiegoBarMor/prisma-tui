@@ -17,6 +17,10 @@ class TUI(Terminal):
         self.img = self.root.new_layer()
         self.txt = self.root.new_layer()
 
+        self._pri.load_palette("demos/data/cat.json")
+        self._pri.setup_pri("demos/data/cat.pri")
+        # exit()
+
         self.bg0.set_chattr(1, '.', curses.A_BOLD)
         self.bg1.set_chattr(1, ':', curses.A_DIM)
         self.img.set_chattr(1, '#', curses.color_pair(2))
@@ -31,12 +35,12 @@ class TUI(Terminal):
         self.bg1.add_block(0, 0, self.effect1)
         self.img.load_npy(2, 3, "demos/data/cat.npy")
 
-        self.txt.add_text("Press F1 to exit", 'b', 'l', curses.color_pair(1))
-        self.txt.add_text(f"{curses.LINES} {curses.COLS}", 't', 'r', curses.A_REVERSE)
+        self.txt.add_text('b','l', "Press F1 to exit", curses.color_pair(1))
+        self.txt.add_text('t','r', f"{curses.LINES} {curses.COLS}", curses.A_REVERSE)
 
 
     # --------------------------------------------------------------------------
-    def kill_when(self):
+    def should_stop(self):
         return self.char == curses.KEY_F1
 
 

@@ -3,7 +3,7 @@ import numpy as np
 
 from prisma.matrix import MatrixChars, MatrixAttrs
 import prisma.settings as _glob
-from prisma.utils import Debug; d = Debug("layer.log")
+from prisma.utils import Debug; d = Debug("logs/layer.log")
 
 # //////////////////////////////////////////////////////////////////////////////
 class Layer:
@@ -50,7 +50,7 @@ class Layer:
         self._mat_chars.load_block(y, x, block, transparency)
         self._mat_attrs.load_block(y, x, block, transparency)
 
-    def add_text(self, s, y = 0, x = 0, attr = curses.A_NORMAL, transparency = _glob.MERGE, cut: dict[str, str] = {}):
+    def add_text(self, y, x, s, attr = curses.A_NORMAL, transparency = _glob.MERGE, cut: dict[str, str] = {}):
         rows = str(s).split('\n')
         h = min(len(rows), self.h)
         w = min(max(map(len, rows)), self.w)

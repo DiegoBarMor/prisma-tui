@@ -13,11 +13,11 @@ class TUI(Terminal):
 
         self.names = ["canvas", "tpanel", "bpanel", "lpanel", "rpanel"]
 
-        self.canvas = self.root.add_child(Section(-6, -10, 3, 5))
-        self.tpanel = self.root.add_child(Section(3, 1.0,  0, 0))
-        self.bpanel = self.root.add_child(Section(3, 1.0, -3, 0))
-        self.lpanel = self.root.add_child(Section(-6, 5, 3, 0 ))
-        self.rpanel = self.root.add_child(Section(-6, 5, 3, -3))
+        self.canvas = self.root.add_child(-6, -10, 3, 5)
+        self.tpanel = self.root.add_child(3, 1.0,  0, 0)
+        self.bpanel = self.root.add_child(3, 1.0, -3, 0)
+        self.lpanel = self.root.add_child(-6, 5, 3, 0 )
+        self.rpanel = self.root.add_child(-6, 5, 3, -3)
 
         self.canvas.mosaic('\n'.join([
             "aaab",
@@ -36,12 +36,12 @@ class TUI(Terminal):
             case curses.KEY_RIGHT: self.set_size(h    , w + 1)
 
         for name,sect in zip(self.names, self.canvas.iter_children()):
-            sect.add_text(f"{name}: {sect._win.getmaxyx()}, {sect._win.getbegyx()}", 'c', 'c')
+            sect.add_text('c','c', f"{name}: {sect.get_size()}, {sect.get_pos()}")
 
-        self.tpanel.add_text("TOP", 'c', 'c')
-        self.bpanel.add_text("BOTTOM", 'c', 'c')
-        self.lpanel.add_text('\n'.join("LEFT"), 'c', 'c')
-        self.rpanel.add_text('\n'.join("RIGHT"), 'c', 'c')
+        self.tpanel.add_text('c','c', "TOP")
+        self.bpanel.add_text('c','c', "BOTTOM")
+        self.lpanel.add_text('c','c', '\n'.join("LEFT"))
+        self.rpanel.add_text('c','c', '\n'.join("RIGHT"))
 
         for sect in self.root.iter_children():
             if sect is self.canvas: continue
@@ -49,13 +49,13 @@ class TUI(Terminal):
         for sect in self.canvas.iter_children():
             sect.do_border()
 
-        self.bpanel.add_text("Resize the screen with the arrow keys", 0, 'l', curses.color_pair(1), transparency = 0)
-        self.bpanel.add_text("Press F1 to exit", 1, 'l', curses.color_pair(1), transparency = 0)
-        self.bpanel.add_text(f"{curses.LINES} {curses.COLS}", 1, 'r', curses.A_REVERSE, transparency = 0)
+        self.bpanel.add_text('t','l', "Resize the screen with the arrow keys", curses.color_pair(1), transparency = 0)
+        self.bpanel.add_text('t+1','l', "Press F1 to exit", curses.color_pair(1), transparency = 0)
+        self.bpanel.add_text('t+1','r', f"{curses.LINES} {curses.COLS}", curses.A_REVERSE, transparency = 0)
 
 
     # --------------------------------------------------------------------------
-    def kill_when(self):
+    def should_stop(self):
         return self.char == curses.KEY_F1
 
 

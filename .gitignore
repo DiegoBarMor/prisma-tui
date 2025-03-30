@@ -1,5 +1,5 @@
 .vscode/
 *__pycache__*
 desktop.ini
+logs/
 temp/
-*.log

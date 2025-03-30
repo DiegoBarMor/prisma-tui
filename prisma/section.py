@@ -3,52 +3,53 @@ from collections import OrderedDict
 
 from prisma.utils import mosaic as _mosaic
 from prisma.layer import Layer
-from prisma.utils import Debug; d = Debug("section.log")
+from prisma.utils import Debug; d = Debug("logs/section.log")
 import prisma.settings as _glob
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING: from terminal import Terminal
 
 # //////////////////////////////////////////////////////////////////////////////
 class Section:
-    def __init__(self, h: int, w: int, y: int, x: int):
+    def __init__(self, term: "Terminal", is_root = False):
+    # def __init__(self, h: int, w: int, y: int, x: int, term: "Terminal" = None):
         # self._hwyx = h,w,y,x
-        self.hrel = h
-        self.wrel = w
-        self.yrel = y
-        self.xrel = x
-        self.h: int; self.w: int
-        self.y: int; self.x: int
-        self._children: list[Section] = []
-        self._layers = []
+        self.hrel: int = 1.0
+        self.wrel: int = 1.0
+        self.yrel: int = 0
+        self.xrel: int = 0
 
         self._parent = None
-
-        self.update_hwyx()
+        self._children: list[Section] = []
+        self._layers = []
+        self._term: Terminal = term
 
 
         self._is_root = False
-        self._win: curses.window = curses.newwin(self.h, self.w, self.y, self.x)
         
+        # self.h, self.w = curses.LINES, curses.COLS
+        # self.y, self.x = 0, 0
+        
+        self.update_hwyx()
+
         self.main_layer = Layer(self.h, self.w)
         self.border_layer = Layer(self.h, self.w)
 
-    # --------------------------------------------------------------------------
 
-    @classmethod
-    def init_root(cls, stdscr: curses.window):
-        root = cls(1.0, 1.0, 0, 0)
-        root._is_root = True
-        root._win = stdscr
-        return root
-    
     # --------------------------------------------------------------------------
-    def set_parent(self, parent):
+    def set_parent(self, parent: "Section") -> None:
         self._parent = parent
-        # self.update_hwyx()
+        parent._children.append(self)
+        self.update_hwyx()
 
-    def add_child(self, section: "Section") -> "Section":
-        self._children.append(section)
-        section.set_parent(self)
-        return section
+    def add_child(self, h: int, w: int, y: int, x: int) -> "Section":
+        child = Section(self._term)
+        child.hrel = h
+        child.wrel = w
+        child.yrel = y
+        child.xrel = x
+        child.set_parent(self)
+        return child
 
     def iter_children(self):
         for child in self._children:
@@ -70,8 +71,7 @@ class Section:
     def mosaic(self, layout: str, divider = '\n'):
         section_dict = {}
         for char, hwyx in _mosaic(layout, divider).items():
-            section = Section(*hwyx)
-            self.add_child(section)
+            section = self.add_child(*hwyx)
             section_dict[char] = section
         return section_dict
 
@@ -127,30 +127,30 @@ class Section:
         for child in self.iter_children():
             child.clear()
 
-    def draw(self, root: "Section"):
+    def draw(self):
         for layer in self.iter_layers():
-            root.main_layer.add_layer(self.y, self.x, layer)
+            self._term.root.main_layer.add_layer(self.y, self.x, layer)
 
         for child in self.iter_children():
-            child.draw(root)
+            child.draw()
 
-        if not self._is_root: return
+        # if not self._is_root: return
 
-        idx = 0
-        for chars,attr in self.main_layer.get_strs():
-            y,x = divmod(idx, self.w)
-            self.safe_addstr(y, x, chars, attr)
-            idx += len(chars)
+        # idx = 0
+        # for chars,attr in self.main_layer.get_strs():
+        #     y,x = divmod(idx, self.w)
+        #     self.safe_addstr(y, x, chars, attr)
+        #     idx += len(chars)
 
 
     def adjust_size_pos(self):
         self.update_hwyx()
 
-        try: self._win.resize(self.h, self.w)
-        except curses.error: pass
+        # try: self._win.resize(self.h, self.w)
+        # except curses.error: pass
 
-        try: self._win.mvwin(self.y, self.x)
-        except curses.error: pass
+        # try: self._win.mvwin(self.y, self.x)
+        # except curses.error: pass
 
         for layer in self.iter_layers():
             layer.set_size(self.h, self.w)
@@ -165,15 +165,17 @@ class Section:
         self.w = w
         self.adjust_size_pos()
 
-    def get_size(self): 
+    def get_size(self):
         return self.h, self.w
 
+    def get_pos(self):
+        return self.y, self.x
 
 
     # --------------------------------------------------------------------------
-    def safe_addstr(self, y, x, s, attr = curses.A_NORMAL):
-        try: self._win.addstr(y, x, s, attr)
-        except curses.error: pass # ignore out of bounds error
+    # def safe_addstr(self, y, x, s, attr = curses.A_NORMAL):
+    #     try: self._win.addstr(y, x, s, attr)
+    #     except curses.error: pass # ignore out of bounds error
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -182,22 +184,17 @@ class Section:
 
 
     # --------------------------------------------------------------------------
-    def do_border(self, last = True):
-        layer = self.border_layer if last else self.main_layer
-
-        # [TODO] add more customization capabilities
-        ls = '│' # should be curses.ACS_VLINE    # Starting-column side
-        rs = '│' # should be curses.ACS_VLINE    # Ending-column side
-        ts = '─' # should be curses.ACS_HLINE    # First-line side
-        bs = '─' # should be curses.ACS_HLINE    # Last-line side
-        tl = '┌' # should be curses.ACS_ULCORNER # Corner of the first line and the starting column
-        tr = '┐' # should be curses.ACS_URCORNER # Corner of the first line and the ending column
-        bl = '└' # should be curses.ACS_LLCORNER # Corner of the last line and the starting column
-        br = '┘' # should be curses.ACS_LRCORNER # Corner of the last line and the ending column
+    def do_border(self,
+        ls = '│', rs = '│', ts = '─', bs = '─',
+        tl = '┌', tr = '┐', bl = '└', br = '┘',
+        attr = _glob.BLANK_ATTR, last = True
+    ):
+        # [TODO] apply the attr
 
         h = self.h - 2
         w = self.w - 2
-        layer.add_text('\n'.join((
+        layer = self.border_layer if last else self.main_layer
+        layer.add_text(0,0, '\n'.join((
             tl + w*ts + tr,
             *[ls + w*_glob.BLANK_CHAR + rs]*h,
             bl + w*bs + br,
