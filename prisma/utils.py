@@ -1,3 +1,4 @@
+import json
 import datetime
 import warnings
 from collections import OrderedDict
@@ -79,10 +80,22 @@ def mosaic(layout, divider = '\n'):
     return data
 
 
+########################### GENERAL UTILITY FUNCTIONS ##########################
+# ------------------------------------------------------------------------------
+def rgb2curses(rgb):
+    return tuple(int(1000 * c / 255) for c in rgb)
+
+# ------------------------------------------------------------------------------
+def load_json(path_json: str) -> list | dict:
+    with open(path_json, 'r') as file:
+        return json.load(file)
+
+
+
 ################################# DEBUG LOGGER #################################
 # //////////////////////////////////////////////////////////////////////////////
 class Debug:
-    """Usage: from prisma.utils import Debug; d = Debug("name.log")"""
+    """Usage: from prisma.utils import Debug; d = Debug("logs/name.log")"""
     def __init__(self, path: str):
         self.path = path
         with open(self.path, 'w') as file:
