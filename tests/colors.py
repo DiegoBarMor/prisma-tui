@@ -2,7 +2,7 @@ import json
 import curses
 
 def main(stdscr: curses.window):
-    path_palette = "tests/palette.json"
+    path_palette = "tests/palette.pal"
     with open(path_palette, 'r') as file:
         palette = json.load(file)
 

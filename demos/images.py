@@ -15,8 +15,8 @@ class TUI(Terminal):
         self.img = self.root.new_layer()
         self.txt = self.root.new_layer()
 
-        self.palette.load_palette("demos/data/cat.json")
-        self.chars_cat, self.attrs_cat = self.palette.setup_pri("demos/data/cat.pri")
+        self.graphics.load_palette("demos/data/cat.pal")
+        self.chars_cat, self.attrs_cat = self.graphics.setup_pri("demos/data/cat.pri")
 
         noise_0 = np.random.random((curses.LINES, curses.COLS)) < 0.2
         noise_1 = np.random.random((curses.LINES, curses.COLS)) < 0.2
@@ -30,9 +30,7 @@ class TUI(Terminal):
         self.attrs_noise_1 = np.full_like(noise_1, curses.A_NORMAL, dtype = int)
         self.chars_noise_1[noise_1] = '`'
         self.attrs_noise_1[noise_1] = curses.A_DIM
-
-        self.menu_pair = len(self.palette.loaded_pairs) + 1
-        curses.init_pair(self.menu_pair, curses.COLOR_BLACK, curses.COLOR_CYAN)
+        curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_CYAN)
 
     # --------------------------------------------------------------------------
     def on_update(self):
@@ -40,7 +38,7 @@ class TUI(Terminal):
         self.bg1.add_block(0, 0, self.chars_noise_1, self.attrs_noise_1)
         self.img.add_block(1, 2, self.chars_cat, self.attrs_cat)
 
-        self.txt.add_text('b','l', "Press F1 to exit", curses.color_pair(self.menu_pair))
+        self.txt.add_text('b','l', "Press F1 to exit", curses.color_pair(1))
         self.txt.add_text('t','r', f"{curses.LINES} {curses.COLS}", curses.A_REVERSE)
 
 

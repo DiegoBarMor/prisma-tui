@@ -1,7 +1,7 @@
 import curses
 from dataclasses import dataclass
 
-from prisma.palette import Palette
+from prisma.graphics import Graphics
 from prisma.section import Section
 from prisma.utils import Debug; d = Debug("logs/terminal.log")
 
@@ -31,14 +31,14 @@ class Terminal:
         self.h: int = 0
         self.w: int = 0
 
-        self.palette: Palette = Palette()
+        self.graphics: Graphics = Graphics()
         self.consts = Constants()
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def on_start(self) -> None:
         return # overridden by user
-    
+
     def on_resize(self) -> None:
         return # overridden by user
 
@@ -78,7 +78,7 @@ class Terminal:
     # --------------------------------------------------------------------------
     def stop(self) -> None:
         self._running = False
-        
+
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def set_fps(self, fps: int) -> None:
@@ -96,9 +96,9 @@ class Terminal:
         print(f"\x1b[8;{h};{w}t")
 
     # --------------------------------------------------------------------------
-    def add_text(self, *args, **kws) -> None: 
+    def add_text(self, *args, **kws) -> None:
         self.root.add_text(*args, **kws)
-        
+
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _on_start(self) -> None:
@@ -131,7 +131,7 @@ class Terminal:
         self.char = self.stdscr.getch() # implicitly calls self.stdscr.refresh()
         if self.should_stop(): self.stop()
         self._wait()
-    
+
     # --------------------------------------------------------------------------
     def _on_end(self) -> None:
         self.on_end()

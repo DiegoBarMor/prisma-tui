@@ -22,6 +22,6 @@ palette = [merge_colors(r,g,b) for r in rgb_colors["reds"] for g in rgb_colors["
 
 print(palette)
 
-path_palette = "tests/palette.json"
+path_palette = "tests/palette.pal"
 with open(path_palette, 'w') as file:
     json.dump(palette, file)

@@ -82,14 +82,14 @@ def mosaic(layout, divider = '\n'):
 
 ########################### GENERAL UTILITY FUNCTIONS ##########################
 # ------------------------------------------------------------------------------
-def rgb2curses(rgb):
-    return tuple(int(1000 * c / 255) for c in rgb)
-
-# ------------------------------------------------------------------------------
 def load_json(path_json: str) -> list | dict:
     with open(path_json, 'r') as file:
         return json.load(file)
 
+# ------------------------------------------------------------------------------
+def write_json(path_json: str, data: list | dict) -> None:
+    with open(path_json, 'w') as file:
+        json.dump(data, file)
 
 
 ################################# DEBUG LOGGER #################################
