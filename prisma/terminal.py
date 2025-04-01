@@ -1,38 +1,31 @@
 import curses
-from dataclasses import dataclass
 
 from prisma.graphics import Graphics
 from prisma.section import Section
 from prisma.utils import Debug; d = Debug("logs/terminal.log")
 
 # //////////////////////////////////////////////////////////////////////////////
-@dataclass(frozen = True)
-class Constants:
+class Terminal:
     OVERWRITE = 0
     OVERLAY = 1
     MERGE = 2
 
     BLANK_CHAR = ' '
     BLANK_ATTR = curses.A_NORMAL
-    LENGHT_VALUE_LOOKUP = 256
-
-
-# //////////////////////////////////////////////////////////////////////////////
-class Terminal:
+    
+    # --------------------------------------------------------------------------
     def __init__(self):
         self._no_delay: bool = False
         self._nap_ms: int = 0
         self._wait = lambda: None
         self._running: bool = False
 
-        self.char: int = -1
-        self.stdscr: curses.window = None
-        self.root: Section = None
         self.h: int = 0
         self.w: int = 0
-
+        self.char: int = -1
+        self.root: Section = None
+        self.stdscr: curses.window = None
         self.graphics: Graphics = Graphics()
-        self.consts = Constants()
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -138,7 +131,6 @@ class Terminal:
 
     # --------------------------------------------------------------------------
     def _draw(self) -> None:
-
         self.root.draw()
 
         idx = 0

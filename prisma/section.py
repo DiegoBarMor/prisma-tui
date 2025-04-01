@@ -5,32 +5,25 @@ from prisma.layer import Layer
 from prisma.utils import Debug; d = Debug("logs/section.log")
 
 from typing import TYPE_CHECKING
-if TYPE_CHECKING: from terminal import Terminal, Constants
+if TYPE_CHECKING: from terminal import Terminal
 
 # //////////////////////////////////////////////////////////////////////////////
 class Section:
     def __init__(self, term: "Terminal", is_root = False):
+        self.term: Terminal = term
         self.hrel: int = 1.0
         self.wrel: int = 1.0
         self.yrel: int = 0
         self.xrel: int = 0
 
-        self.consts = term.consts
         self._parent = None
         self._children: list[Section] = []
         self._layers = []
-        self.term: Terminal = term
-
-
         self._is_root = is_root
-        
 
         self.update_hwyx()
-
         self.main_layer = Layer(self)
         self.border_layer = Layer(self)
-
-
 
 
     # --------------------------------------------------------------------------
@@ -39,12 +32,15 @@ class Section:
         parent._children.append(self)
         self.update_hwyx()
 
-    def add_child(self, h: int, w: int, y: int, x: int) -> "Section":
+    def add_child(self, 
+        hrel: int|float, wrel: int|float, 
+        yrel: int|float, xrel: int|float
+    ) -> "Section":
         child = Section(self.term)
-        child.hrel = h
-        child.wrel = w
-        child.yrel = y
-        child.xrel = x
+        child.hrel = hrel
+        child.wrel = wrel
+        child.yrel = yrel
+        child.xrel = xrel
         child.set_parent(self)
         return child
 
@@ -65,7 +61,7 @@ class Section:
         self._layers.append(layer)
         return layer
 
-    def mosaic(self, layout: str, divider = '\n'):
+    def mosaic(self, layout: str, divider = '\n') -> dict:
         section_dict = {}
         for char, hwyx in _mosaic(layout, divider).items():
             section = self.add_child(*hwyx)
@@ -74,7 +70,7 @@ class Section:
 
 
     # --------------------------------------------------------------------------
-    def update_hwyx(self):
+    def update_hwyx(self) -> None:
         if self._parent is None:
             self.h, self.w = curses.LINES, curses.COLS
             self.y, self.x = 0, 0
@@ -117,14 +113,14 @@ class Section:
 
 
     # --------------------------------------------------------------------------
-    def clear(self):
+    def clear(self) -> None:
         for layer in self.iter_layers():
             layer.fill_matrix()
 
         for child in self.iter_children():
             child.clear()
 
-    def draw(self):
+    def draw(self) -> None:
         for layer in self.iter_layers():
             self.term.root.main_layer.add_layer(self.y, self.x, layer)
 
@@ -132,14 +128,8 @@ class Section:
             child.draw()
 
 
-    def adjust_size_pos(self):
+    def adjust_size_pos(self) -> None:
         self.update_hwyx()
-
-        # try: self._win.resize(self.h, self.w)
-        # except curses.error: pass
-
-        # try: self._win.mvwin(self.y, self.x)
-        # except curses.error: pass
 
         for layer in self.iter_layers():
             layer.set_size(self.h, self.w)
@@ -149,15 +139,15 @@ class Section:
 
 
     # --------------------------------------------------------------------------
-    def set_size(self, h, w):
+    def set_size(self, h, w) -> None:
         self.h = h
         self.w = w
         self.adjust_size_pos()
 
-    def get_size(self):
+    def get_size(self) -> tuple[int, int]:
         return self.h, self.w
 
-    def get_pos(self):
+    def get_pos(self) -> tuple[int, int]:
         return self.y, self.x
 
 
@@ -173,14 +163,14 @@ class Section:
         attr = None, last = True
     ):
         # [TODO] apply the attr
-        if attr is None: attr = self.consts.BLANK_ATTR
+        if attr is None: attr = self.term.BLANK_ATTR
 
         h = self.h - 2
         w = self.w - 2
         layer = self.border_layer if last else self.main_layer
         layer.add_text(0,0, '\n'.join((
             tl + w*ts + tr,
-            *[ls + w*self.consts.BLANK_CHAR + rs]*h,
+            *[ls + w*self.term.BLANK_CHAR + rs]*h,
             bl + w*bs + br,
         )))
 

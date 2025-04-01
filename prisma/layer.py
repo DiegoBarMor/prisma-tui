@@ -1,6 +1,6 @@
 import curses
 
-from prisma.matrix import MatrixChars, MatrixAttrs
+from prisma.pixel import Pixel
 from prisma.utils import Debug; d = Debug("logs/layer.log")
 
 from typing import TYPE_CHECKING
@@ -12,54 +12,74 @@ class Layer:
         self.h = sect.h
         self.w = sect.w
         self.sect = sect
-        self.consts = sect.consts
-        self._mat_chars = MatrixChars(self)
-        self._mat_attrs = MatrixAttrs(self)
-
+        self.term = sect.term
+        self._pixels = [[Pixel() for _ in range(self.w)] for _ in range(self.h)]
+        self._transparency = sect.term.MERGE
 
     # --------------------------------------------------------------------------
-    def add_layer(self, y, x, other: "Layer", transparency = None):
-        if transparency is None:
-            transparency = other.consts.MERGE
-        self._stamp(y, x, 
-            other._mat_chars._mat, 
-            other._mat_attrs._mat, 
-            transparency
-        )
+    def set_transparency(self, transparency):
+        # assert transparency in (self.term.MERGE, self.term.OVERLAY, self.term.OVERWRITE)
+        # self._transparency = transparency
+        pass
+    
+    # --------------------------------------------------------------------------
+    def add_layer(self, y, x, other: "Layer"):
+        self._stamp(y, x, other._pixels, other._transparency)
         return self
 
-
     # --------------------------------------------------------------------------
+    def _new_subrow(self, length, char = ' ', attr = curses.A_NORMAL):
+        return [Pixel(char, attr) for _ in range(length)]
+
+    def _new_matrix(self, h, w, char = ' ', attr = curses.A_NORMAL):
+        return [self._new_subrow(w, char, attr) for _ in range(h)]
+
     def fill_row(self, i, char = ' ', attr = curses.A_NORMAL):
-        self._mat_chars.fill_row(i, char)
-        self._mat_attrs.fill_row(i, attr)
+        self._pixels[i] = self._new_subrow(self.w, char, attr)
 
     def fill_matrix(self, char = ' ', attr = curses.A_NORMAL):
-        self._mat_chars.fill_matrix(char)
-        self._mat_attrs.fill_matrix(attr)
+        for i in range(self.h): self.fill_row(i, char, attr)
 
+    def _add_rows(self, n):
+        self._pixels += [self._new_subrow(self.w) for _ in range(n)]
+
+    def _add_cols(self, n):
+        self._pixels = [row + self._new_subrow(n) for row in self._pixels]
+
+    def _remove_rows(self, n):
+        self._pixels = self._pixels[:n]
+
+    def _remove_cols(self, n):
+        self._pixels = [row[:n] for row in self._pixels]
 
     # --------------------------------------------------------------------------
     def set_size(self, h, w):
-        self._mat_chars.set_size(h, w)
-        self._mat_attrs.set_size(h, w)
-        self.h = h; self.w = w
+        if   h < self.h: self._remove_rows(h)
+        elif h > self.h: self._add_rows(h - self.h)
+        self.h = h
 
+        if   w < self.w: self._remove_cols(w)
+        elif w > self.w: self._add_cols(w - self.w)
+        self.w = w
+
+    # --------------------------------------------------------------------------
+    def _pixel_matrix(self, mat_chars, mat_attrs):
+        return [[Pixel(c,a) for c,a in zip(row_chars, row_attrs)] for row_chars, row_attrs in zip(mat_chars, mat_attrs)]
 
     # --------------------------------------------------------------------------
     def add_block(self, y, x, chars, attrs = None, transparency = None):
         if attrs is None: 
-            attrs = [[self.consts.BLANK_ATTR for _ in range(self.w)] for _ in range(self.h)]
+            attrs = [[self.term.BLANK_ATTR for _ in range(self.w)] for _ in range(self.h)]
         elif isinstance(attrs, int):
             attrs = [[attrs for _ in range(self.w)] for _ in range(self.h)]
 
-        if transparency is None: transparency = self.consts.MERGE
-        self._mat_chars.load_block(y, x, chars, transparency)
-        self._mat_attrs.load_block(y, x, attrs, transparency)
+        if transparency is None: transparency = self.term.MERGE
+        self._stamp(y, x, self._pixel_matrix(chars, attrs), transparency)   
 
+    # --------------------------------------------------------------------------
     def add_text(self, y, x, string, attr = None, transparency = None, cut: dict[str, str] = {}):
-        if attr is None: attr = self.consts.BLANK_ATTR
-        if transparency is None: transparency = self.consts.MERGE
+        if attr is None: attr = self.term.BLANK_ATTR
+        if transparency is None: transparency = self.term.MERGE
         rows = str(string).split('\n')
         h = min(len(rows), self.h)
         w = min(max(map(len, rows)), self.w)
@@ -97,14 +117,13 @@ class Layer:
                 case 'R': chars = tuple(map(lambda row: row[:self.w-xval-v], chars))
                 case  _ : raise ValueError(f"Invalid cut key: '{k}'")
 
-        self._stamp(yval, xval, chars, attrs, transparency)
+        self._stamp(yval, xval, self._pixel_matrix(chars, attrs), transparency)   
 
 
     # --------------------------------------------------------------------------
     def get_strs(self):
-
-        flat_chars = ''.join(self._mat_chars._mat)
-        flat_attrs = [attr for row in self._mat_attrs._mat for attr in row]
+        flat_chars = ''.join(''.join(pixel._char for pixel in row) for row in self._pixels)
+        flat_attrs = [pixel._attr for row in self._pixels for pixel in row]
 
         attrs_offset_0 = flat_attrs[:-1]
         attrs_offset_1 = flat_attrs[1:]
@@ -117,9 +136,28 @@ class Layer:
 
 
     # --------------------------------------------------------------------------
-    def _stamp(self, y, x, chars, attrs, transparency):
-        self._mat_chars.stamp(y, x, chars, transparency)
-        self._mat_attrs.stamp(y, x, attrs, transparency)
+    def _stamp(self, y, x, data, transparency):
+        if (y >= self.h) or (x >= self.w): return
+
+        match transparency:
+            case self.term.MERGE:     func = Pixel.merge
+            case self.term.OVERLAY:   func = Pixel.overlay
+            case self.term.OVERWRITE: func = Pixel.overwrite
+            case _: raise ValueError()
+
+        y0 = y; x0 = x
+        y1 = min(y + len(data)   , self.h)
+        x1 = min(x + len(data[0]), self.w)
+
+        mat_orig = self._pixels[y0:y1]
+        mat_modf = data[:y1-y0]
+
+        self._pixels[y0:y1] = [
+            row_orig[:x0] + [
+                func(o,m) for o,m in zip(row_orig[x0:x1], row_modf[:x1-x0])
+            ] + row_orig[x1:] 
+            for row_orig, row_modf in zip(mat_orig, mat_modf)
+        ]
 
 
 # //////////////////////////////////////////////////////////////////////////////

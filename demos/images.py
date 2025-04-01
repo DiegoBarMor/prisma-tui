@@ -40,6 +40,7 @@ class TUI(Terminal):
 
         self.txt.add_text('b','l', "Press F1 to exit", curses.color_pair(1))
         self.txt.add_text('t','r', f"{curses.LINES} {curses.COLS}", curses.A_REVERSE)
+        # self.txt.set_transparency(0)
 
 
     # --------------------------------------------------------------------------
