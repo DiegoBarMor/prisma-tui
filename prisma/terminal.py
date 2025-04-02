@@ -6,10 +6,6 @@ from prisma.utils import Debug; d = Debug("logs/terminal.log")
 
 # //////////////////////////////////////////////////////////////////////////////
 class Terminal:
-    OVERWRITE = 0
-    OVERLAY = 1
-    MERGE = 2
-
     BLANK_CHAR = ' '
     BLANK_ATTR = curses.A_NORMAL
     
@@ -95,7 +91,7 @@ class Terminal:
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _on_start(self) -> None:
-        self.root = Section(self, is_root = True)
+        self.root = Section(is_root = True)
         self._running = True
         self.stdscr.nodelay(self._no_delay)
         self.on_start()
@@ -131,7 +127,8 @@ class Terminal:
 
     # --------------------------------------------------------------------------
     def _draw(self) -> None:
-        self.root.draw()
+        for y,x,layer in self.root.draw():
+            self.root.main_layer.add_layer(y, x, layer)
 
         idx = 0
         for chars,attr in self.root.main_layer.get_strs():

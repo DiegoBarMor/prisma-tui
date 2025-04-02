@@ -15,6 +15,8 @@ class TUI(Terminal):
         self.add_text("c+1",'c', f"Key pressed: {self.char}", curses.A_BOLD)
         self.add_text('b','l', "Press F1 to exit", curses.color_pair(1))
 
+
+
     # --------------------------------------------------------------------------
     def should_stop(self):
         return self.char == curses.KEY_F1

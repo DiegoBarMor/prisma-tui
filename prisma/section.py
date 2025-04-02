@@ -1,16 +1,14 @@
 import curses
 
-from prisma.utils import mosaic as _mosaic
 from prisma.layer import Layer
+from prisma.utils import mosaic as _mosaic
 from prisma.utils import Debug; d = Debug("logs/section.log")
-
-from typing import TYPE_CHECKING
-if TYPE_CHECKING: from terminal import Terminal
 
 # //////////////////////////////////////////////////////////////////////////////
 class Section:
-    def __init__(self, term: "Terminal", is_root = False):
-        self.term: Terminal = term
+    def __init__(self, is_root = False):
+        self.BLANK_CHAR = ' '
+        self.BLANK_ATTR = curses.A_NORMAL
         self.hrel: int = 1.0
         self.wrel: int = 1.0
         self.yrel: int = 0
@@ -22,8 +20,8 @@ class Section:
         self._is_root = is_root
 
         self.update_hwyx()
-        self.main_layer = Layer(self)
-        self.border_layer = Layer(self)
+        self.main_layer = Layer(self.h, self.w)
+        self.border_layer = Layer(self.h, self.w)
 
 
     # --------------------------------------------------------------------------
@@ -36,7 +34,7 @@ class Section:
         hrel: int|float, wrel: int|float, 
         yrel: int|float, xrel: int|float
     ) -> "Section":
-        child = Section(self.term)
+        child = Section()
         child.hrel = hrel
         child.wrel = wrel
         child.yrel = yrel
@@ -57,7 +55,7 @@ class Section:
 
     # --------------------------------------------------------------------------
     def new_layer(self) -> Layer:
-        layer = Layer(self)
+        layer = Layer(self.h, self.w)
         self._layers.append(layer)
         return layer
 
@@ -120,12 +118,14 @@ class Section:
         for child in self.iter_children():
             child.clear()
 
+
     def draw(self) -> None:
         for layer in self.iter_layers():
-            self.term.root.main_layer.add_layer(self.y, self.x, layer)
+            yield self.y, self.x, layer
 
         for child in self.iter_children():
-            child.draw()
+            for out in child.draw():
+                yield out
 
 
     def adjust_size_pos(self) -> None:
@@ -163,14 +163,14 @@ class Section:
         attr = None, last = True
     ):
         # [TODO] apply the attr
-        if attr is None: attr = self.term.BLANK_ATTR
+        if attr is None: attr = self.BLANK_ATTR
 
         h = self.h - 2
         w = self.w - 2
         layer = self.border_layer if last else self.main_layer
         layer.add_text(0,0, '\n'.join((
             tl + w*ts + tr,
-            *[ls + w*self.term.BLANK_CHAR + rs]*h,
+            *[ls + w*self.BLANK_CHAR + rs]*h,
             bl + w*bs + br,
         )))
 

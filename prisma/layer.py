@@ -3,27 +3,22 @@ import curses
 from prisma.pixel import Pixel
 from prisma.utils import Debug; d = Debug("logs/layer.log")
 
-from typing import TYPE_CHECKING
-if TYPE_CHECKING: from section import Section
-
 # //////////////////////////////////////////////////////////////////////////////
 class Layer:
-    def __init__(self, sect: "Section"):
-        self.h = sect.h
-        self.w = sect.w
-        self.sect = sect
-        self.term = sect.term
+    def __init__(self, h, w):
+        self.h = h
+        self.w = w
+        self.BLANK_CHAR = ' '
+        self.BLANK_ATTR = curses.A_NORMAL
         self._pixels = [[Pixel() for _ in range(self.w)] for _ in range(self.h)]
-        self._transparency = sect.term.MERGE
+        self._transparency = True
 
     # --------------------------------------------------------------------------
-    def set_transparency(self, transparency):
-        # assert transparency in (self.term.MERGE, self.term.OVERLAY, self.term.OVERWRITE)
-        # self._transparency = transparency
-        pass
-    
+    def set_transparency(self, transparency: bool) -> None:
+        self._transparency = transparency
+
     # --------------------------------------------------------------------------
-    def add_layer(self, y, x, other: "Layer"):
+    def add_layer(self, y: int, x: int, other: "Layer") -> "Layer":
         self._stamp(y, x, other._pixels, other._transparency)
         return self
 
@@ -67,19 +62,18 @@ class Layer:
         return [[Pixel(c,a) for c,a in zip(row_chars, row_attrs)] for row_chars, row_attrs in zip(mat_chars, mat_attrs)]
 
     # --------------------------------------------------------------------------
-    def add_block(self, y, x, chars, attrs = None, transparency = None):
-        if attrs is None: 
-            attrs = [[self.term.BLANK_ATTR for _ in range(self.w)] for _ in range(self.h)]
-        elif isinstance(attrs, int):
+    def add_block(self, y, x, chars, attrs = None, transparency = True):
+        if attrs is None: attrs = self.BLANK_ATTR
+            
+        if isinstance(attrs, int):
             attrs = [[attrs for _ in range(self.w)] for _ in range(self.h)]
 
-        if transparency is None: transparency = self.term.MERGE
         self._stamp(y, x, self._pixel_matrix(chars, attrs), transparency)   
 
     # --------------------------------------------------------------------------
-    def add_text(self, y, x, string, attr = None, transparency = None, cut: dict[str, str] = {}):
-        if attr is None: attr = self.term.BLANK_ATTR
-        if transparency is None: transparency = self.term.MERGE
+    def add_text(self, y, x, string, attr = None, transparency = True, cut: dict[str, str] = {}):
+        if attr is None: attr = self.BLANK_ATTR
+
         rows = str(string).split('\n')
         h = min(len(rows), self.h)
         w = min(max(map(len, rows)), self.w)
@@ -139,11 +133,7 @@ class Layer:
     def _stamp(self, y, x, data, transparency):
         if (y >= self.h) or (x >= self.w): return
 
-        match transparency:
-            case self.term.MERGE:     func = Pixel.merge
-            case self.term.OVERLAY:   func = Pixel.overlay
-            case self.term.OVERWRITE: func = Pixel.overwrite
-            case _: raise ValueError()
+        func = Pixel.overlay if transparency else Pixel.overwrite
 
         y0 = y; x0 = x
         y1 = min(y + len(data)   , self.h)
