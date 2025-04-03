@@ -1,14 +1,11 @@
-import curses
-from prisma.utils import Debug; d = Debug("logs/pixel.log")
+import prisma
 
 # //////////////////////////////////////////////////////////////////////////////
 class Pixel:
-    def __init__(self, char = ' ', attr = curses.A_NORMAL):
-        self.BLANK_CHAR = ' '
-        self.BLANK_ATTR = curses.A_NORMAL
+    def __init__(self, char = prisma.BLANK_CHAR, attr = prisma.BLANK_ATTR):
         self._char = char
         self._attr = attr
-        
+
     # --------------------------------------------------------------------------
     def __repr__(self):
         return f"Pixel({self._char}, {self._attr})"
@@ -21,7 +18,7 @@ class Pixel:
 
     # --------------------------------------------------------------------------
     def overlay(self, other: "Pixel") -> "Pixel":
-        if (other._char != self.BLANK_CHAR) or (other._attr != self.BLANK_ATTR):
+        if (other._char != prisma.BLANK_CHAR) or (other._attr != prisma.BLANK_ATTR):
             self._char = other._char
             self._attr = other._attr
         return self

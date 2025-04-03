@@ -1,6 +1,7 @@
-set -e  # stop when a command exits with a non-zero status...
+set -e
+rm -rf build prisma_tui.egg-info
 python3 demos/keys.py
 python3 demos/images.py
 python3 demos/layouts.py
 python3 demos/animations.py
-rm logs/*.log
+rm -f logs/*.log

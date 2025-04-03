@@ -1,6 +1,4 @@
 import json
-import datetime
-import warnings
 from collections import OrderedDict
 
 ############################# MOSAIC LAYOUT PARSER #############################
@@ -34,9 +32,7 @@ def is_sequential(iterable):
 
 # ------------------------------------------------------------------------------
 def mosaic(layout, divider = '\n'):
-    if not layout:
-        warnings.warn("Empty layout")
-        return {}
+    if not layout: return {}
 
     rows = layout.split(divider)
     cols = tuple(zip(*rows))
@@ -97,6 +93,7 @@ def write_json(path_json: str, data: list | dict) -> None:
 class Debug:
     """Usage: from prisma.utils import Debug; d = Debug("logs/name.log")"""
     def __init__(self, path: str):
+        import datetime
         self.path = path
         with open(self.path, 'w') as file:
             file.write(f"{datetime.datetime.now()}\n\n")

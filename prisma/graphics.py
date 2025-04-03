@@ -1,7 +1,5 @@
 import curses
-
-from prisma import utils
-from prisma.utils import Debug; d = Debug("logs/graphics.log")
+import prisma
 
 # //////////////////////////////////////////////////////////////////////////////
 class Graphics:
@@ -24,7 +22,7 @@ class Graphics:
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def load_palette(self, path_pal: str) -> None:
-        self.palette = utils.load_json(path_pal)
+        self.palette = prisma.utils.load_json(path_pal)
         colors = self.palette["colors"]
         pairs  = self.palette["pairs"]
 
@@ -47,7 +45,7 @@ class Graphics:
 
     # --------------------------------------------------------------------------
     def write_palette(self, path_pal: str) -> None:
-        utils.write_json(path_pal, self.palette)
+        prisma.utils.write_json(path_pal, self.palette)
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

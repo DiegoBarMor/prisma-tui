@@ -1,14 +1,10 @@
 import curses
-
-from prisma.layer import Layer
-from prisma.utils import mosaic as _mosaic
-from prisma.utils import Debug; d = Debug("logs/section.log")
+import prisma
+from typing import Generator
 
 # //////////////////////////////////////////////////////////////////////////////
 class Section:
     def __init__(self, is_root = False):
-        self.BLANK_CHAR = ' '
-        self.BLANK_ATTR = curses.A_NORMAL
         self.hrel: int = 1.0
         self.wrel: int = 1.0
         self.yrel: int = 0
@@ -20,8 +16,8 @@ class Section:
         self._is_root = is_root
 
         self.update_hwyx()
-        self.main_layer = Layer(self.h, self.w)
-        self.border_layer = Layer(self.h, self.w)
+        self.main_layer = prisma.Layer(self.h, self.w)
+        self.border_layer = prisma.Layer(self.h, self.w)
 
 
     # --------------------------------------------------------------------------
@@ -30,8 +26,8 @@ class Section:
         parent._children.append(self)
         self.update_hwyx()
 
-    def add_child(self, 
-        hrel: int|float, wrel: int|float, 
+    def add_child(self,
+        hrel: int|float, wrel: int|float,
         yrel: int|float, xrel: int|float
     ) -> "Section":
         child = Section()
@@ -54,14 +50,14 @@ class Section:
 
 
     # --------------------------------------------------------------------------
-    def new_layer(self) -> Layer:
-        layer = Layer(self.h, self.w)
+    def new_layer(self) -> prisma.Layer:
+        layer = prisma.Layer(self.h, self.w)
         self._layers.append(layer)
         return layer
 
     def mosaic(self, layout: str, divider = '\n') -> dict:
         section_dict = {}
-        for char, hwyx in _mosaic(layout, divider).items():
+        for char, hwyx in prisma.utils.mosaic(layout, divider).items():
             section = self.add_child(*hwyx)
             section_dict[char] = section
         return section_dict
@@ -119,7 +115,7 @@ class Section:
             child.clear()
 
 
-    def draw(self) -> None:
+    def draw(self) -> Generator[tuple[int, int, "prisma.Layer"], None, None]:
         for layer in self.iter_layers():
             yield self.y, self.x, layer
 
@@ -163,14 +159,14 @@ class Section:
         attr = None, last = True
     ):
         # [TODO] apply the attr
-        if attr is None: attr = self.BLANK_ATTR
+        if attr is None: attr = prisma.BLANK_ATTR
 
         h = self.h - 2
         w = self.w - 2
         layer = self.border_layer if last else self.main_layer
         layer.add_text(0,0, '\n'.join((
             tl + w*ts + tr,
-            *[ls + w*self.BLANK_CHAR + rs]*h,
+            *[ls + w*prisma.BLANK_CHAR + rs]*h,
             bl + w*bs + br,
         )))
 

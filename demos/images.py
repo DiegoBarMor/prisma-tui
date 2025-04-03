@@ -1,12 +1,9 @@
 import curses
-
-import os, sys; sys.path.insert(0, os.getcwd()) # allow imports from root folder
-from prisma.terminal import Terminal
-
+import prisma
 import numpy as np
 
 # //////////////////////////////////////////////////////////////////////////////
-class TUI(Terminal):
+class TUI(prisma.Terminal):
     def on_start(self):
         curses.curs_set(False)
 
@@ -36,11 +33,10 @@ class TUI(Terminal):
     def on_update(self):
         self.bg0.add_block(0, 0, self.chars_noise_0, self.attrs_noise_0)
         self.bg1.add_block(0, 0, self.chars_noise_1, self.attrs_noise_1)
-        self.img.add_block(1, 2, self.chars_cat, self.attrs_cat)
+        self.img.add_block('c', 'c', self.chars_cat, self.attrs_cat)
 
         self.txt.add_text('b','l', "Press F1 to exit", curses.color_pair(1))
         self.txt.add_text('t','r', f"{curses.LINES} {curses.COLS}", curses.A_REVERSE)
-        # self.txt.set_transparency(0)
 
 
     # --------------------------------------------------------------------------

@@ -1,27 +1,21 @@
 import curses
-
-from prisma.graphics import Graphics
-from prisma.section import Section
-from prisma.utils import Debug; d = Debug("logs/terminal.log")
+import prisma
 
 # //////////////////////////////////////////////////////////////////////////////
 class Terminal:
-    BLANK_CHAR = ' '
-    BLANK_ATTR = curses.A_NORMAL
-    
     # --------------------------------------------------------------------------
     def __init__(self):
+        self.h: int = 0
+        self.w: int = 0
+        self.char: int = -1
+        self.root: prisma.Section
+        self.stdscr: curses.window
+        self.graphics: prisma.Graphics
+
         self._no_delay: bool = False
         self._nap_ms: int = 0
         self._wait = lambda: None
         self._running: bool = False
-
-        self.h: int = 0
-        self.w: int = 0
-        self.char: int = -1
-        self.root: Section = None
-        self.stdscr: curses.window = None
-        self.graphics: Graphics = Graphics()
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -91,7 +85,8 @@ class Terminal:
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _on_start(self) -> None:
-        self.root = Section(is_root = True)
+        self.root = prisma.Section(is_root = True)
+        self.graphics = prisma.Graphics()
         self._running = True
         self.stdscr.nodelay(self._no_delay)
         self.on_start()
@@ -125,7 +120,8 @@ class Terminal:
     def _on_end(self) -> None:
         self.on_end()
 
-    # --------------------------------------------------------------------------
+
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _draw(self) -> None:
         for y,x,layer in self.root.draw():
             self.root.main_layer.add_layer(y, x, layer)

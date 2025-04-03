@@ -1,16 +1,11 @@
-import curses
-
-from prisma.pixel import Pixel
-from prisma.utils import Debug; d = Debug("logs/layer.log")
+import prisma
 
 # //////////////////////////////////////////////////////////////////////////////
 class Layer:
     def __init__(self, h, w):
         self.h = h
         self.w = w
-        self.BLANK_CHAR = ' '
-        self.BLANK_ATTR = curses.A_NORMAL
-        self._pixels = [[Pixel() for _ in range(self.w)] for _ in range(self.h)]
+        self._pixels = [[prisma.Pixel() for _ in range(self.w)] for _ in range(self.h)]
         self._transparency = True
 
     # --------------------------------------------------------------------------
@@ -23,16 +18,16 @@ class Layer:
         return self
 
     # --------------------------------------------------------------------------
-    def _new_subrow(self, length, char = ' ', attr = curses.A_NORMAL):
-        return [Pixel(char, attr) for _ in range(length)]
+    def _new_subrow(self, length, char = prisma.BLANK_CHAR, attr = prisma.BLANK_ATTR):
+        return [prisma.Pixel(char, attr) for _ in range(length)]
 
-    def _new_matrix(self, h, w, char = ' ', attr = curses.A_NORMAL):
+    def _new_matrix(self, h, w, char = prisma.BLANK_CHAR, attr = prisma.BLANK_ATTR):
         return [self._new_subrow(w, char, attr) for _ in range(h)]
 
-    def fill_row(self, i, char = ' ', attr = curses.A_NORMAL):
+    def fill_row(self, i, char = prisma.BLANK_CHAR, attr = prisma.BLANK_ATTR):
         self._pixels[i] = self._new_subrow(self.w, char, attr)
 
-    def fill_matrix(self, char = ' ', attr = curses.A_NORMAL):
+    def fill_matrix(self, char = prisma.BLANK_CHAR, attr = prisma.BLANK_ATTR):
         for i in range(self.h): self.fill_row(i, char, attr)
 
     def _add_rows(self, n):
@@ -59,28 +54,50 @@ class Layer:
 
     # --------------------------------------------------------------------------
     def _pixel_matrix(self, mat_chars, mat_attrs):
-        return [[Pixel(c,a) for c,a in zip(row_chars, row_attrs)] for row_chars, row_attrs in zip(mat_chars, mat_attrs)]
+        return [[prisma.Pixel(c,a) for c,a in zip(row_chars, row_attrs)] for row_chars, row_attrs in zip(mat_chars, mat_attrs)]
 
     # --------------------------------------------------------------------------
     def add_block(self, y, x, chars, attrs = None, transparency = True):
-        if attrs is None: attrs = self.BLANK_ATTR
-            
-        if isinstance(attrs, int):
-            attrs = [[attrs for _ in range(self.w)] for _ in range(self.h)]
+        if not len(chars): return
+        if attrs is None: attrs = prisma.BLANK_ATTR
 
-        self._stamp(y, x, self._pixel_matrix(chars, attrs), transparency)   
+        h = min(len(chars), self.h)
+        w = min(max(map(len, chars)), self.w)
+
+
+        if isinstance(attrs, int):
+            attrs = [[attrs for _ in range(w)] for _ in range(h)]
+
+        chars = chars[:h][:w]
+        attrs = attrs[:h][:w]
+
+        y, x = self._parse_coords(h, w, y, x)
+
+
+        self._stamp(y, x, self._pixel_matrix(chars, attrs), transparency)
 
     # --------------------------------------------------------------------------
     def add_text(self, y, x, string, attr = None, transparency = True, cut: dict[str, str] = {}):
-        if attr is None: attr = self.BLANK_ATTR
+        if attr is None: attr = prisma.BLANK_ATTR
 
         rows = str(string).split('\n')
         h = min(len(rows), self.h)
         w = min(max(map(len, rows)), self.w)
 
-        chars = [row.ljust(w)[:w] for row in rows[:h]]
-        attrs = [[attr for _ in range(w)] for _ in range(h)]
+        chars = [row.ljust(w, prisma.BLANK_CHAR)[:w] for row in rows[:h]]
 
+        y, x = self._parse_coords(h, w, y, x)
+
+        if (x >= self.w) or (y >= self.h): return
+
+        chars = self._parse_cut(y, x, cut, chars)
+        attrs = [[attr for _ in row] for row in chars]
+
+        self._stamp(y, x, self._pixel_matrix(chars, attrs), transparency)
+
+
+    # --------------------------------------------------------------------------
+    def _parse_coords(self, h, w, y, x):
         if isinstance(y, str):
             match y[0].upper():
                 case 'T': yval = 0
@@ -101,17 +118,20 @@ class Layer:
             if modifier: xval += int(modifier)
         else: xval = x
 
-        if (xval >= self.w) or (yval >= self.h): return
+        return yval, xval
 
+
+    # --------------------------------------------------------------------------
+    def _parse_cut(self, y, x, cut, data):
         for k,v in cut.items():
             match k.upper():
-                case 'T': chars = chars[v:]
-                case 'B': chars = chars[:self.h-yval-v]
-                case 'L': chars = tuple(map(lambda row: row[v:], chars))
-                case 'R': chars = tuple(map(lambda row: row[:self.w-xval-v], chars))
+                case 'T': data = data[v:]
+                case 'B': data = data[:self.h-y-v]
+                case 'L': data = tuple(map(lambda row: row[v:], data))
+                case 'R': data = tuple(map(lambda row: row[:self.w-x-v], data))
                 case  _ : raise ValueError(f"Invalid cut key: '{k}'")
+        return data
 
-        self._stamp(yval, xval, self._pixel_matrix(chars, attrs), transparency)   
 
 
     # --------------------------------------------------------------------------
@@ -132,20 +152,24 @@ class Layer:
     # --------------------------------------------------------------------------
     def _stamp(self, y, x, data, transparency):
         if (y >= self.h) or (x >= self.w): return
+        if not len(data): return
 
-        func = Pixel.overlay if transparency else Pixel.overwrite
+        func = prisma.Pixel.overlay if transparency else prisma.Pixel.overwrite
+
+        h = len(data)
+        w = len(data[0])
 
         y0 = y; x0 = x
-        y1 = min(y + len(data)   , self.h)
-        x1 = min(x + len(data[0]), self.w)
+        y1 = min(y + h, self.h)
+        x1 = min(x + w, self.w)
 
         mat_orig = self._pixels[y0:y1]
-        mat_modf = data[:y1-y0]
+        mat_modf = data[:y1-y]
 
         self._pixels[y0:y1] = [
             row_orig[:x0] + [
-                func(o,m) for o,m in zip(row_orig[x0:x1], row_modf[:x1-x0])
-            ] + row_orig[x1:] 
+                func(o,m) for o,m in zip(row_orig[x0:x1], row_modf[:x1-x])
+            ] + row_orig[x1:]
             for row_orig, row_modf in zip(mat_orig, mat_modf)
         ]
 
