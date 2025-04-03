@@ -13,7 +13,7 @@ class TUI(prisma.Terminal):
         self.txt = self.root.new_layer()
 
         self.graphics.load_palette("demos/data/cat.pal")
-        self.chars_cat, self.attrs_cat = self.graphics.setup_pri("demos/data/cat.pri")
+        self.chars_cat, self.attrs_cat = self.graphics.load_pri("demos/data/cat.pri")
 
         noise_0 = np.random.random((curses.LINES, curses.COLS)) < 0.2
         noise_1 = np.random.random((curses.LINES, curses.COLS)) < 0.2

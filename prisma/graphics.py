@@ -3,9 +3,6 @@ import prisma
 
 # //////////////////////////////////////////////////////////////////////////////
 class Graphics:
-    MAX_PALETTE_COLORS = 256
-    MAX_PALETTE_PAIRS  = 256
-    ALPHA_THRESHOLD = 128
 
     # --------------------------------------------------------------------------
     def __init__(self):
@@ -21,16 +18,20 @@ class Graphics:
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    def write_palette(self, path_pal: str) -> None:
+        prisma.utils.write_json(path_pal, self.palette)
+
+    # --------------------------------------------------------------------------
     def load_palette(self, path_pal: str) -> None:
         self.palette = prisma.utils.load_json(path_pal)
         colors = self.palette["colors"]
         pairs  = self.palette["pairs"]
 
-        assert len(colors) <= self.MAX_PALETTE_COLORS, \
-            f"Graphics has {len(colors)} colors, max is {self.MAX_PALETTE_COLORS}."
+        assert len(colors) <= prisma.MAX_PALETTE_COLORS, \
+            f"Graphics has {len(colors)} colors, max is {prisma.MAX_PALETTE_COLORS}."
 
-        assert len(pairs) <= self.MAX_PALETTE_PAIRS, \
-            f"Graphics has {len(pairs)} pairs, max is {self.MAX_PALETTE_PAIRS}."
+        assert len(pairs) <= prisma.MAX_PALETTE_PAIRS, \
+            f"Graphics has {len(pairs)} pairs, max is {prisma.MAX_PALETTE_PAIRS}."
 
         try:
             if not curses.can_change_color(): return
@@ -43,34 +44,10 @@ class Graphics:
             if not i: continue # first pair is reserved by curses
             curses.init_pair(i, fg, bg)
 
-    # --------------------------------------------------------------------------
-    def write_palette(self, path_pal: str) -> None:
-        prisma.utils.write_json(path_pal, self.palette)
-
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def setup_pri(self, path_pri: str) -> None:
-        string, attrs = self.load_pri(path_pri)
-        chars = string.split('\n')
-        return chars, attrs
-
-    # --------------------------------------------------------------------------
-    def load_pri(self, path_pri: str) -> None:
-        with open(path_pri, "rb") as file:
-            h = int.from_bytes(file.read(2), byteorder="little")
-            w = int.from_bytes(file.read(2), byteorder="little")
-            nchars = h * (w + 1) - 1 # +1 for breaklines (except the last one)
-
-            file.read(1) # skip a breakline character
-            chars = file.read(nchars).decode("utf-8")
-            file.read(1) # skip a breakline character
-
-            pairs = [[int(file.read(1)[0]) for _ in range(w)] for _ in range(h)]
-            attrs = [[curses.color_pair(i) for i in row] for row in pairs]
-        return chars, attrs
-
-    # --------------------------------------------------------------------------
-    def save_pri(self, path_pri: str, chars: list[str], pairs: list[list[int]]) -> None:
+    @classmethod
+    def save_pri(cls, path_pri: str, chars: list[str], pairs: list[list[int]]) -> None:
         h = len(chars)
         w = len(chars[0]) if h > 0 else 0
 
@@ -85,6 +62,22 @@ class Graphics:
             file.write('\n'.join(chars).encode("utf-8"))
             file.write(b'\n')
             for row in pairs: file.write(bytes(int(x) for x in row))
+
+    # --------------------------------------------------------------------------
+    @classmethod
+    def load_pri(cls, path_pri: str) -> tuple[list[str], list[list[int]]]:
+        with open(path_pri, "rb") as file:
+            h = int.from_bytes(file.read(2), byteorder="little")
+            w = int.from_bytes(file.read(2), byteorder="little")
+            nchars = h * (w + 1) - 1 # +1 for breaklines (except the last one)
+
+            file.read(1) # skip a breakline character
+            chars = file.read(nchars).decode("utf-8")
+            file.read(1) # skip a breakline character
+
+            pairs = [[int(file.read(1)[0]) for _ in range(w)] for _ in range(h)]
+            attrs = [[curses.color_pair(i) for i in row] for row in pairs]
+        return chars.split('\n'), attrs
 
 
 # //////////////////////////////////////////////////////////////////////////////

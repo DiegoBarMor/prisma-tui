@@ -5,7 +5,7 @@ class Layer:
     def __init__(self, h, w):
         self.h = h
         self.w = w
-        self._pixels = [[prisma.Pixel() for _ in range(self.w)] for _ in range(self.h)]
+        self._pixels = prisma.PixelMatrix(h, w)
         self._transparency = True
 
     # --------------------------------------------------------------------------
@@ -21,36 +21,14 @@ class Layer:
     def _new_subrow(self, length, char = prisma.BLANK_CHAR, attr = prisma.BLANK_ATTR):
         return [prisma.Pixel(char, attr) for _ in range(length)]
 
-    def _new_matrix(self, h, w, char = prisma.BLANK_CHAR, attr = prisma.BLANK_ATTR):
-        return [self._new_subrow(w, char, attr) for _ in range(h)]
-
-    def fill_row(self, i, char = prisma.BLANK_CHAR, attr = prisma.BLANK_ATTR):
-        self._pixels[i] = self._new_subrow(self.w, char, attr)
-
-    def fill_matrix(self, char = prisma.BLANK_CHAR, attr = prisma.BLANK_ATTR):
-        for i in range(self.h): self.fill_row(i, char, attr)
-
-    def _add_rows(self, n):
-        self._pixels += [self._new_subrow(self.w) for _ in range(n)]
-
-    def _add_cols(self, n):
-        self._pixels = [row + self._new_subrow(n) for row in self._pixels]
-
-    def _remove_rows(self, n):
-        self._pixels = self._pixels[:n]
-
-    def _remove_cols(self, n):
-        self._pixels = [row[:n] for row in self._pixels]
+    def clear(self):
+        self._pixels.reset()
 
     # --------------------------------------------------------------------------
     def set_size(self, h, w):
-        if   h < self.h: self._remove_rows(h)
-        elif h > self.h: self._add_rows(h - self.h)
         self.h = h
-
-        if   w < self.w: self._remove_cols(w)
-        elif w > self.w: self._add_cols(w - self.w)
         self.w = w
+        self._pixels.set_size(h, w)
 
     # --------------------------------------------------------------------------
     def _pixel_matrix(self, mat_chars, mat_attrs):
@@ -60,20 +38,14 @@ class Layer:
     def add_block(self, y, x, chars, attrs = None, transparency = True):
         if not len(chars): return
         if attrs is None: attrs = prisma.BLANK_ATTR
-
-        h = min(len(chars), self.h)
-        w = min(max(map(len, chars)), self.w)
-
-
         if isinstance(attrs, int):
             attrs = [[attrs for _ in range(w)] for _ in range(h)]
 
+        h = min(len(chars), self.h)
+        w = min(max(map(len, chars)), self.w)
         chars = chars[:h][:w]
         attrs = attrs[:h][:w]
-
         y, x = self._parse_coords(h, w, y, x)
-
-
         self._stamp(y, x, self._pixel_matrix(chars, attrs), transparency)
 
     # --------------------------------------------------------------------------

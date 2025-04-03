@@ -109,7 +109,7 @@ class Section:
     # --------------------------------------------------------------------------
     def clear(self) -> None:
         for layer in self.iter_layers():
-            layer.fill_matrix()
+            layer.clear()
 
         for child in self.iter_children():
             child.clear()

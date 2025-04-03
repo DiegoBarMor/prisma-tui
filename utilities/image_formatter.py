@@ -1,11 +1,9 @@
-import sys
+import prisma
 import numpy as np
 from PIL import Image
 from pathlib import Path
 from collections import Counter
 
-import os, sys; sys.path.insert(0, os.getcwd()) # allow imports from root folder
-from prisma.graphics import Graphics
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 def open_img(path_img: Path) -> np.array:
@@ -38,7 +36,7 @@ def generate_palette(img: np.array) -> np.array:
     ]
 
     rgb,alpha = sep_channels(img)
-    bg = rgb[alpha >= Graphics.ALPHA_THRESHOLD]
+    bg = rgb[alpha >= prisma.ALPHA_THRESHOLD]
     lst_colors = [tuple(color) for color in bg.reshape(-1,3)]
 
     count = Counter(lst_colors)
@@ -52,7 +50,7 @@ def generate_palette(img: np.array) -> np.array:
             count.items(), key = lambda t: t[1], reverse = True
         )
     ]
-    out_colors = colors[:Graphics.MAX_PALETTE_COLORS]
+    out_colors = colors[:prisma.MAX_PALETTE_COLORS]
     out_pairs = [(0,i) for i in range(len(out_colors))]
     ### ^^^ fg is automatically set to black for all pairs
     ### this can be changed in the .pal file if needed
@@ -71,7 +69,7 @@ def to_palette_values(img: np.array, palcolors: np.array) -> np.array:
     dists = np.sum((rgb_broad - palette_broad) ** 2, axis = 2) # (w*h,p)
     idxs = np.argmin(dists, axis = 1) # (w*h,)
     idxs = idxs.reshape(w,h) # (w,h)
-    idxs[alpha < Graphics.ALPHA_THRESHOLD] = 0 # 0 represents transparent pixels
+    idxs[alpha < prisma.ALPHA_THRESHOLD] = 0 # 0 represents transparent pixels
 
     print(type(rgb))
     print(type(idxs[idxs > 0]))
@@ -91,7 +89,7 @@ if __name__ == "__main__":
     path_pal = Path("demos/data/cat.pal")
     path_pri = path_img.with_suffix(".pri")
 
-    g = Graphics()
+    g = prisma.Graphics()
     img = open_img(path_img)
 
     colors, pairs = generate_palette(img)
@@ -107,7 +105,7 @@ if __name__ == "__main__":
     chars[arr > 0] = '	'
     chars = [''.join(row) for row in chars]
 
-    Graphics().save_pri(
+    prisma.Graphics.save_pri(
         path_img.with_suffix(".pri"),
         chars = chars, pairs = arr
     )
