@@ -4,20 +4,19 @@ from typing import Generator
 
 # //////////////////////////////////////////////////////////////////////////////
 class Section:
-    def __init__(self, is_root = False):
+    def __init__(self):
+        self._parent = None
+
+        self.h: int; self.w: int
+        self.y: int; self.x: int
         self.hrel: int = 1.0
         self.wrel: int = 1.0
         self.yrel: int = 0
         self.xrel: int = 0
-
-        self._parent = None
-        self._children: list[Section] = []
-        self._layers = []
-        self._is_root = is_root
-
         self.update_hwyx()
-        self.main_layer = prisma.Layer(self.h, self.w)
-        self.border_layer = prisma.Layer(self.h, self.w)
+
+        self._children: list[Section] = []
+        self._layers = [prisma.Layer(self.h, self.w)]
 
 
     # --------------------------------------------------------------------------
@@ -42,11 +41,7 @@ class Section:
         return iter(self._children)
 
     def iter_layers(self):
-        yield self.main_layer
-        for layer in self._layers:
-            yield layer
-        yield self.border_layer
-
+        return iter(self._layers)
 
     # --------------------------------------------------------------------------
     def new_layer(self) -> prisma.Layer:
@@ -64,15 +59,13 @@ class Section:
 
     # --------------------------------------------------------------------------
     def update_hwyx(self) -> None:
-        if self._parent is None:
+        if self._parent is None: # root section
             self.h, self.w = curses.LINES, curses.COLS
             self.y, self.x = 0, 0
             return
 
-        h = self.hrel
-        w = self.wrel
-        y = self.yrel
-        x = self.xrel
+        h = self.hrel; w = self.wrel
+        y = self.yrel; x = self.xrel
 
         if isinstance(h, float):
             self.h = round(h * self._parent.h)
@@ -123,21 +116,15 @@ class Section:
                 yield out
 
 
-    def adjust_size_pos(self) -> None:
+    # --------------------------------------------------------------------------
+    def update_size(self) -> None:
         self.update_hwyx()
 
         for layer in self.iter_layers():
             layer.set_size(self.h, self.w)
 
         for child in self.iter_children():
-            child.adjust_size_pos()
-
-
-    # --------------------------------------------------------------------------
-    def set_size(self, h, w) -> None:
-        self.h = h
-        self.w = w
-        self.adjust_size_pos()
+            child.update_size()
 
     def get_size(self) -> tuple[int, int]:
         return self.h, self.w
@@ -145,32 +132,21 @@ class Section:
     def get_pos(self) -> tuple[int, int]:
         return self.y, self.x
 
+    def get_bottom_layer(self) -> prisma.Layer:
+        return self._layers[0]
+
+    def get_top_layer(self) -> prisma.Layer:
+        return self._layers[-1]
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def add_text(self, *args, **kwds):
-        self.main_layer.add_text(*args, **kwds)
+        self.get_top_layer().add_text(*args, **kwds)
 
     def add_matrix(self, *args, **kwds):
-        self.main_layer.add_matrix(*args, **kwds)
+        self.get_top_layer().add_matrix(*args, **kwds)
 
-
-    # --------------------------------------------------------------------------
-    def do_border(self,
-        ls = '│', rs = '│', ts = '─', bs = '─',
-        tl = '┌', tr = '┐', bl = '└', br = '┘',
-        attr = None, last = True
-    ):
-        # [TODO] apply the attr
-        if attr is None: attr = prisma.BLANK_ATTR
-
-        h = self.h - 2
-        w = self.w - 2
-        layer = self.border_layer if last else self.main_layer
-        layer.add_text(0,0, '\n'.join((
-            tl + w*ts + tr,
-            *[ls + w*prisma.BLANK_CHAR + rs]*h,
-            bl + w*bs + br,
-        )))
+    def add_border(self, *args, **kwds):
+        self.get_top_layer().add_border(*args, **kwds)
 
 
 # //////////////////////////////////////////////////////////////////////////////

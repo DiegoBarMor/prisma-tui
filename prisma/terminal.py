@@ -20,7 +20,7 @@ class Terminal:
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _internal_on_start(self) -> None:
-        self.root = prisma.Section(is_root = True)
+        self.root = prisma.Section()
         self.graphics = prisma.Graphics()
         self._running = True
         self.stdscr.nodelay(self._no_delay)
@@ -34,7 +34,7 @@ class Terminal:
         if (self.h == h) and (self.w == w): return
 
         self.h = h; self.w = w
-        self.root.set_size(h, w)
+        self.root.update_size()
 
         try: self.stdscr.resize(self.h, self.w)
         except curses.error: pass
@@ -43,7 +43,6 @@ class Terminal:
 
     # --------------------------------------------------------------------------
     def _internal_on_update(self) -> None:
-        self.root.clear()
         self.on_update()
         self._draw()
 
@@ -83,6 +82,7 @@ class Terminal:
 
             self._internal_on_start()
             while self._running:
+                self.root.clear()
                 self._internal_on_resize()
                 self._internal_on_update()
             self._internal_on_end()
@@ -134,10 +134,11 @@ class Terminal:
     def add_text(self, *args, **kws) -> None:
         self.root.add_text(*args, **kws)
 
-    # --------------------------------------------------------------------------
     def add_matrix(self, *args, **kws) -> None:
         self.root.add_matrix(*args, **kws)
 
+    def add_border(self, *args, **kwds) -> None:
+        self.root.add_border(*args, **kwds)
 
 
 # //////////////////////////////////////////////////////////////////////////////

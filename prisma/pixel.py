@@ -26,11 +26,16 @@ class Pixel:
 
 # //////////////////////////////////////////////////////////////////////////////
 class PixelMatrix:
-    def __init__(self, h, w, init_data = True):
+    def __init__(self, h, w, chars: list[str] = None, attrs: list[list[int]] = None):
+        if chars is None: chars = ((prisma.BLANK_CHAR for _ in range(w)) for _ in range(h))
+        if attrs is None: attrs = ((prisma.BLANK_ATTR for _ in range(w)) for _ in range(h))
         self.h = h
         self.w = w
-        self._data: list[list[prisma.Pixel]]
-        if init_data: self.reset()
+        self._data: list[list[prisma.Pixel]] = [
+            [prisma.Pixel(c,a) for c,a in zip(row_chars, row_attrs)]
+            for row_chars, row_attrs in zip(chars, attrs)
+        ]
+
 
     def __getitem__(self, index):
         return self._data[index]
@@ -63,17 +68,6 @@ class PixelMatrix:
 
     def _remove_cols(self, n):
         self._data = [row[:n] for row in self._data]
-
-    @classmethod
-    def from_data(cls, h, w, chars: list[str] = None, attrs: list[list[int]] = None):
-        if chars is None: chars = [[prisma.BLANK_CHAR for _ in range(w)] for _ in range(h)]
-        if attrs is None: attrs = [[prisma.BLANK_ATTR for _ in range(w)] for _ in range(h)]
-        obj = cls(h, w, init_data = False)
-        obj._data = [
-            [prisma.Pixel(c,a) for c,a in zip(row_chars, row_attrs)]
-            for row_chars, row_attrs in zip(chars, attrs)
-        ]
-        return obj
 
     def reset(self):
         self._data = [self._new_row(self.w) for _ in range(self.h)]

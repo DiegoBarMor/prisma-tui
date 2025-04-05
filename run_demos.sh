@@ -1,5 +1,6 @@
 set -eu
 ./build.sh
+clear
 mkdir -p logs
 python3 demos/keys.py
 python3 demos/images.py

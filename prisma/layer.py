@@ -39,7 +39,7 @@ class Layer:
         chars = chars[:h][:w]
         attrs = attrs[:h][:w]
         y, x = self._parse_coords(h, w, y, x)
-        pixel_mat = prisma.PixelMatrix.from_data(h, w, chars, attrs)
+        pixel_mat = prisma.PixelMatrix(h, w, chars, attrs)
         self.stamp(y, x, pixel_mat, transparency)
 
     # --------------------------------------------------------------------------
@@ -59,9 +59,25 @@ class Layer:
         chars = self._parse_cut(y, x, cut, chars)
         attrs = [[attr for _ in row] for row in chars]
 
-        pixel_mat = prisma.PixelMatrix.from_data(h, w, chars, attrs)
+        pixel_mat = prisma.PixelMatrix(h, w, chars, attrs)
         self.stamp(y, x, pixel_mat, transparency)
 
+    # --------------------------------------------------------------------------
+    def add_border(self,
+        ls = '│', rs = '│', ts = '─', bs = '─',
+        tl = '┌', tr = '┐', bl = '└', br = '┘',
+        attr = None
+    ):
+        # [TODO] apply the attr
+        if attr is None: attr = prisma.BLANK_ATTR
+
+        h = self.h - 2
+        w = self.w - 2
+        self.add_text(0,0, '\n'.join((
+            tl + w*ts + tr,
+            *[ls + w*prisma.BLANK_CHAR + rs]*h,
+            bl + w*bs + br,
+        )))
 
     # --------------------------------------------------------------------------
     def _parse_coords(self, h, w, y, x):
