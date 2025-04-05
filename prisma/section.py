@@ -1,4 +1,3 @@
-import curses
 import prisma
 from typing import Generator
 
@@ -60,7 +59,7 @@ class Section:
     # --------------------------------------------------------------------------
     def update_hwyx(self) -> None:
         if self._parent is None: # root section
-            self.h, self.w = curses.LINES, curses.COLS
+            self.h, self.w = prisma.BACKEND.get_term_size()
             self.y, self.x = 0, 0
             return
 

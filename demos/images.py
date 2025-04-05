@@ -33,9 +33,9 @@ class TUI(prisma.Terminal):
 
     # --------------------------------------------------------------------------
     def on_update(self):
-        self.bg0.add_matrix(0, 0, self.mat_noise_0)
-        self.bg1.add_matrix(0, 0, self.mat_noise_1)
-        self.img.add_matrix('c', 'c', self.mat_cat)
+        self.bg0.add_matrix(0, 0, self.mat_noise_0.copy())
+        self.bg1.add_matrix(0, 0, self.mat_noise_1.copy())
+        self.img.add_matrix('c', 'c', self.mat_cat.copy())
 
         self.txt.add_text('b','l', "Press F1 to exit", curses.color_pair(1))
         self.txt.add_text('t','r', f"{curses.LINES} {curses.COLS}", curses.A_REVERSE)

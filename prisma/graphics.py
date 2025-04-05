@@ -1,4 +1,3 @@
-import curses
 import prisma
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -33,16 +32,13 @@ class Graphics:
         assert len(pairs) <= prisma.MAX_PALETTE_PAIRS, \
             f"Graphics has {len(pairs)} pairs, max is {prisma.MAX_PALETTE_PAIRS}."
 
-        try:
-            if not curses.can_change_color(): return
-        except curses.error: return
+        if not prisma.BACKEND.color_enabled(): return
 
         for i,color in enumerate(colors):
-            curses.init_color(i, *color)
+            prisma.BACKEND.init_color(i, *color)
 
         for i,(fg,bg) in enumerate(pairs):
-            if not i: continue # first pair is reserved by curses
-            curses.init_pair(i, fg, bg)
+            prisma.BACKEND.init_pair(i, fg, bg)
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -76,7 +72,7 @@ class Graphics:
             file.read(1) # skip a breakline character
 
             pairs = [[int(file.read(1)[0]) for _ in range(w)] for _ in range(h)]
-            attrs = [[curses.color_pair(i) for i in row] for row in pairs]
+            attrs = [[prisma.BACKEND.color_pair(i) for i in row] for row in pairs]
         return prisma.PixelMatrix(h, w, chars.split('\n'), attrs)
 
 

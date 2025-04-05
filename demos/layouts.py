@@ -33,8 +33,7 @@ class TUI(prisma.Terminal):
             case curses.KEY_DOWN:  self.set_size(h+1, w  )
             case curses.KEY_RIGHT: self.set_size(h  , w+1)
 
-    # --------------------------------------------------------------------------
-    def on_resize(self):
+
         for name,sect in zip(self.names, self.canvas.iter_children()):
             sect.add_text('c','c', f"{name}: {sect.get_size()}, {sect.get_pos()}")
 

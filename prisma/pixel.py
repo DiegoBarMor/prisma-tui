@@ -54,6 +54,31 @@ class PixelMatrix:
             else   ('*' if p._attr != prisma.BLANK_ATTR else ' ')
         return '\n'.join(''.join(f(pixel) for pixel in row) for row in self._data)
 
+    def reset(self):
+        self._data = [self._new_row(self.w) for _ in range(self.h)]
+
+    def copy(self):
+        return PixelMatrix(
+            self.h, self.w,
+            ((p._char for p in row) for row in self._data),
+            ((p._attr for p in row) for row in self._data)
+        )
+        
+    def get_char_data(self):
+        return [[pixel._char for pixel in row] for row in self._data]
+
+    def get_attr_data(self):
+        return [[pixel._attr for pixel in row] for row in self._data]
+
+    def set_size(self, h, w):
+        if   h < self.h: self._remove_rows(h)
+        elif h > self.h: self._add_rows(h - self.h)
+        self.h = h
+
+        if   w < self.w: self._remove_cols(w)
+        elif w > self.w: self._add_cols(w - self.w)
+        self.w = w
+
     def _new_row(self, length):
         return [prisma.Pixel() for _ in range(length)]
 
@@ -69,23 +94,6 @@ class PixelMatrix:
     def _remove_cols(self, n):
         self._data = [row[:n] for row in self._data]
 
-    def reset(self):
-        self._data = [self._new_row(self.w) for _ in range(self.h)]
-
-    def get_char_data(self):
-        return [[pixel._char for pixel in row] for row in self._data]
-
-    def get_attr_data(self):
-        return [[pixel._attr for pixel in row] for row in self._data]
-
-    def set_size(self, h, w):
-        if   h < self.h: self._remove_rows(h)
-        elif h > self.h: self._add_rows(h - self.h)
-        self.h = h
-
-        if   w < self.w: self._remove_cols(w)
-        elif w > self.w: self._add_cols(w - self.w)
-        self.w = w
 
 
 # //////////////////////////////////////////////////////////////////////////////
