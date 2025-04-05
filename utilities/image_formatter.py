@@ -93,9 +93,9 @@ if __name__ == "__main__":
     img = open_img(path_img)
 
     colors, pairs = generate_palette(img)
-    g.set_palette_colors(colors)
-    g.set_palette_pairs(pairs)
-    g.write_palette(path_pal)
+    g.set_colors(colors)
+    g.set_pairs(pairs)
+    g.save_palette(path_pal)
 
     g.load_palette(path_pal)
     colors = np.array(g.palette["colors"])
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     chars[arr > 0] = ' '
     chars = [''.join(row) for row in chars]
 
-    prisma.Graphics.save_pri(
+    prisma.Graphics.save_pixel_matrix(
         path_img.with_suffix(".pri"),
         chars = chars, pairs = arr
     )

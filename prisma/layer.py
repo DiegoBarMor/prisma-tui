@@ -5,38 +5,39 @@ class Layer:
     def __init__(self, h, w):
         self.h = h
         self.w = w
-        self._pixels = prisma.PixelMatrix(h, w)
         self._transparency = True
+        self._pixels = prisma.PixelMatrix(h, w)
 
-    # --------------------------------------------------------------------------
-    def set_transparency(self, transparency: bool) -> None:
-        self._transparency = transparency
 
-    # --------------------------------------------------------------------------
-    def add_layer(self, y: int, x: int, other: "Layer") -> "Layer":
-        self.stamp(y, x, other._pixels, other._transparency)
-        return self
-
-    # --------------------------------------------------------------------------
-    def clear(self):
-        self._pixels.reset()
-
-    # --------------------------------------------------------------------------
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def set_size(self, h, w):
         self.h = h
         self.w = w
         self._pixels.set_size(h, w)
 
     # --------------------------------------------------------------------------
-    def add_matrix(self, y, x, matrix: "prisma.PixelMatrix", transparency = True):
+    def set_transparency(self, transparency: bool) -> None:
+        self._transparency = transparency
+
+    # --------------------------------------------------------------------------
+    def clear(self):
+        self._pixels.reset()
+
+    # --------------------------------------------------------------------------
+    def merge_layer(self, y: int, x: int, other: "Layer"):
+        self._stamp(y, x, other._pixels, other._transparency)
+
+
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    def draw_matrix(self, y, x, matrix: "prisma.PixelMatrix", transparency = True):
         h = min(matrix.h, self.h)
         w = min(matrix.w, self.w)
         matrix.set_size(h, w)
         y, x = self._parse_coords(h, w, y, x)
-        self.stamp(y, x, matrix, transparency)
+        self._stamp(y, x, matrix, transparency)
 
     # --------------------------------------------------------------------------
-    def add_text(self, y, x, string, attr = None, transparency = True, cut: dict[str, str] = {}):
+    def draw_text(self, y, x, string, attr = None, transparency = True, cut: dict[str, str] = {}):
         if attr is None: attr = prisma.BLANK_ATTR
 
         rows = str(string).split('\n')
@@ -53,10 +54,10 @@ class Layer:
         attrs = [[attr for _ in row] for row in chars]
 
         matrix = prisma.PixelMatrix(h, w, chars, attrs)
-        self.stamp(y, x, matrix, transparency)
+        self._stamp(y, x, matrix, transparency)
 
     # --------------------------------------------------------------------------
-    def add_border(self,
+    def draw_border(self,
         ls = '│', rs = '│', ts = '─', bs = '─',
         tl = '┌', tr = '┐', bl = '└', br = '┘',
         attr = None
@@ -67,7 +68,7 @@ class Layer:
         w = self.w - 2
         BC = prisma.BLANK_CHAR
         BA = prisma.BLANK_ATTR
-        self.add_matrix(
+        self.draw_matrix(
             0,0, prisma.PixelMatrix(
                 self.h, self.w,
                 chars = \
@@ -81,7 +82,23 @@ class Layer:
             )
         )
 
-    # --------------------------------------------------------------------------
+
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    def yield_render_data(self):
+        flat_chars = ''.join(''.join(pixel._char for pixel in row) for row in self._pixels)
+        flat_attrs = [pixel._attr for row in self._pixels for pixel in row]
+
+        attrs_offset_0 = flat_attrs[:-1]
+        attrs_offset_1 = flat_attrs[1:]
+
+        attrs_mask = (a != b for a,b in zip(attrs_offset_0, attrs_offset_1))
+        border_idxs = [0] + [i for i,a in enumerate(attrs_mask, start = 1) if a] + [len(flat_chars)]
+
+        for i0,i1 in zip(border_idxs[:-1], border_idxs[1:]):
+            yield flat_chars[i0:i1], flat_attrs[i0]
+
+
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _parse_coords(self, h, w, y, x):
         if isinstance(y, str):
             match y[0].upper():
@@ -118,24 +135,8 @@ class Layer:
         return data
 
 
-
     # --------------------------------------------------------------------------
-    def get_strs(self):
-        flat_chars = ''.join(''.join(pixel._char for pixel in row) for row in self._pixels)
-        flat_attrs = [pixel._attr for row in self._pixels for pixel in row]
-
-        attrs_offset_0 = flat_attrs[:-1]
-        attrs_offset_1 = flat_attrs[1:]
-
-        attrs_mask = (a != b for a,b in zip(attrs_offset_0, attrs_offset_1))
-        border_idxs = [0] + [i for i,a in enumerate(attrs_mask, start = 1) if a] + [len(flat_chars)]
-
-        for i0,i1 in zip(border_idxs[:-1], border_idxs[1:]):
-            yield flat_chars[i0:i1], flat_attrs[i0]
-
-
-    # --------------------------------------------------------------------------
-    def stamp(self, y, x, data, transparency):
+    def _stamp(self, y, x, data, transparency):
         if (y >= self.h) or (x >= self.w): return
         if not len(data): return
 

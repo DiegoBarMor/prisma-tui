@@ -11,9 +11,9 @@ class TUI(prisma.Terminal):
 
     # --------------------------------------------------------------------------
     def on_update(self):
-        self.add_text('c','c', f"{curses.LINES} lines, {curses.COLS} cols", curses.A_REVERSE)
-        self.add_text("c+1",'c', f"Key pressed: {self.char}", curses.A_BOLD)
-        self.add_text('b','l', "Press F1 to exit", curses.color_pair(1))
+        self.draw_text('c','c', f"{curses.LINES} lines, {curses.COLS} cols", curses.A_REVERSE)
+        self.draw_text("c+1",'c', f"Key pressed: {self.char}", curses.A_BOLD)
+        self.draw_text('b','l', "Press F1 to exit", curses.color_pair(1))
 
 
 

@@ -12,7 +12,7 @@ class Section:
         self.wrel: int = 1.0
         self.yrel: int = 0
         self.xrel: int = 0
-        self.update_hwyx()
+        self._update_dimensions()
 
         self._children: list[Section] = []
         self._layers = [prisma.Layer(self.h, self.w)]
@@ -22,9 +22,10 @@ class Section:
     def set_parent(self, parent: "Section") -> None:
         self._parent = parent
         parent._children.append(self)
-        self.update_hwyx()
+        self._update_dimensions()
 
-    def add_child(self,
+    # --------------------------------------------------------------------------
+    def create_child(self,
         hrel: int|float, wrel: int|float,
         yrel: int|float, xrel: int|float
     ) -> "Section":
@@ -36,30 +37,86 @@ class Section:
         child.set_parent(self)
         return child
 
-    def iter_children(self):
-        return iter(self._children)
-
-    def iter_layers(self):
-        return iter(self._layers)
-
     # --------------------------------------------------------------------------
-    def new_layer(self) -> prisma.Layer:
+    def create_layer(self) -> prisma.Layer:
         layer = prisma.Layer(self.h, self.w)
         self._layers.append(layer)
         return layer
 
-    def mosaic(self, layout: str, divider = '\n') -> dict:
+    # --------------------------------------------------------------------------
+    def create_mosaic(self, layout: str, divider = '\n') -> dict:
         section_dict = {}
         for char, hwyx in prisma.utils.mosaic(layout, divider).items():
-            section = self.add_child(*hwyx)
+            section = self.create_child(*hwyx)
             section_dict[char] = section
         return section_dict
 
 
     # --------------------------------------------------------------------------
-    def update_hwyx(self) -> None:
+    def iter_children(self):
+        return iter(self._children)
+
+    # --------------------------------------------------------------------------
+    def iter_layers(self):
+        return iter(self._layers)
+
+    # --------------------------------------------------------------------------
+    def clear(self) -> None:
+        for layer in self.iter_layers():
+            layer.clear()
+
+        for child in self.iter_children():
+            child.clear()
+
+
+    # --------------------------------------------------------------------------
+    def aggregate_layers(self) -> Generator[tuple[int, int, "prisma.Layer"], None, None]:
+        for layer in self.iter_layers():
+            yield self.y, self.x, layer
+
+        for child in self.iter_children():
+            for out in child.aggregate_layers():
+                yield out
+
+
+    # --------------------------------------------------------------------------
+    def update_size(self) -> None:
+        self._update_dimensions()
+
+        for layer in self.iter_layers():
+            layer.set_size(self.h, self.w)
+
+        for child in self.iter_children():
+            child.update_size()
+
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    def get_size(self) -> tuple[int, int]:
+        return self.h, self.w
+
+    def get_position(self) -> tuple[int, int]:
+        return self.y, self.x
+
+    def get_bottom_layer(self) -> prisma.Layer:
+        return self._layers[0]
+
+    def get_top_layer(self) -> prisma.Layer:
+        return self._layers[-1]
+
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    def draw_text(self, *args, **kwds):
+        self.get_top_layer().draw_text(*args, **kwds)
+
+    def draw_matrix(self, *args, **kwds):
+        self.get_top_layer().draw_matrix(*args, **kwds)
+
+    def draw_border(self, *args, **kwds):
+        self.get_top_layer().draw_border(*args, **kwds)
+
+
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    def _update_dimensions(self) -> None:
         if self._parent is None: # root section
-            self.h, self.w = prisma.BACKEND.get_term_size()
+            self.h, self.w = prisma.BACKEND.get_size()
             self.y, self.x = 0, 0
             return
 
@@ -96,56 +153,6 @@ class Section:
         if y_outbounds > 0: self.y -= y_outbounds
         if x_outbounds > 0: self.x -= x_outbounds
 
-
-    # --------------------------------------------------------------------------
-    def clear(self) -> None:
-        for layer in self.iter_layers():
-            layer.clear()
-
-        for child in self.iter_children():
-            child.clear()
-
-
-    def compose(self) -> Generator[tuple[int, int, "prisma.Layer"], None, None]:
-        for layer in self.iter_layers():
-            yield self.y, self.x, layer
-
-        for child in self.iter_children():
-            for out in child.compose():
-                yield out
-
-
-    # --------------------------------------------------------------------------
-    def update_size(self) -> None:
-        self.update_hwyx()
-
-        for layer in self.iter_layers():
-            layer.set_size(self.h, self.w)
-
-        for child in self.iter_children():
-            child.update_size()
-
-    def get_size(self) -> tuple[int, int]:
-        return self.h, self.w
-
-    def get_pos(self) -> tuple[int, int]:
-        return self.y, self.x
-
-    def get_bottom_layer(self) -> prisma.Layer:
-        return self._layers[0]
-
-    def get_top_layer(self) -> prisma.Layer:
-        return self._layers[-1]
-
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def add_text(self, *args, **kwds):
-        self.get_top_layer().add_text(*args, **kwds)
-
-    def add_matrix(self, *args, **kwds):
-        self.get_top_layer().add_matrix(*args, **kwds)
-
-    def add_border(self, *args, **kwds):
-        self.get_top_layer().add_border(*args, **kwds)
 
 
 # //////////////////////////////////////////////////////////////////////////////

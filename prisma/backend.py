@@ -9,28 +9,28 @@ class Backend(ABC):
     def end(self) -> None: pass
     
     @abstractmethod
-    def nodelay(self, boolean: bool) -> None: pass
+    def set_nodelay(self, boolean: bool) -> None: pass
     
     @abstractmethod
-    def addstr(self, y: int, x: int, chars: str, attr: int = 0) -> None: pass
+    def write_text(self, y: int, x: int, chars: str, attr: int = 0) -> None: pass
     
     @abstractmethod
-    def draw(self) -> None: pass
+    def refresh(self) -> None: pass
     
     @abstractmethod
     def get_key(self) -> int: pass
     
     @abstractmethod
-    def get_term_size(self, update = False) -> tuple[int,int]: pass
+    def get_size(self, update = False) -> tuple[int,int]: pass
     
     @abstractmethod
-    def resize_term(self, h: int, w: int) -> None: pass
+    def resize(self, h: int, w: int) -> None: pass
     
     @abstractmethod
     def sleep(self, ms: int) -> None: pass
     
     @abstractmethod
-    def color_enabled(self) -> bool: pass
+    def supports_color(self) -> bool: pass
     
     @abstractmethod
     def init_color(self, i: int, r: int, g: int, b: int) -> None: pass
@@ -39,7 +39,7 @@ class Backend(ABC):
     def init_pair(self, i: int, fg: int, bg: int) -> None: pass
 
     @abstractmethod
-    def color_pair(self, i: int) -> int: pass
+    def get_color_pair(self, i: int) -> int: pass
 
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -67,7 +67,7 @@ class CursesBackend(Backend):
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def nodelay(self, boolean: bool) -> None:
+    def set_nodelay(self, boolean: bool) -> None:
         self.stdscr.nodelay(boolean)
 
     # --------------------------------------------------------------------------
@@ -75,12 +75,12 @@ class CursesBackend(Backend):
         self.curses.napms(ms)
 
     # --------------------------------------------------------------------------
-    def addstr(self, y: int, x: int, chars: str, attr: int = 0) -> None:
+    def write_text(self, y: int, x: int, chars: str, attr: int = 0) -> None:
         try: self.stdscr.addstr(y, x, chars, attr)
         except self.curses.error: pass # ignore out of bounds error
 
     # --------------------------------------------------------------------------
-    def draw(self) -> None:
+    def refresh(self) -> None:
         return # unnecessary, as stdscr.refresh() gets implicitly called by stdscr.getkey()
 
     # --------------------------------------------------------------------------
@@ -89,18 +89,18 @@ class CursesBackend(Backend):
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def get_term_size(self, update = False) -> tuple[int,int]:
+    def get_size(self, update = False) -> tuple[int,int]:
         if update: self.curses.update_lines_cols()
         return self.curses.LINES, self.curses.COLS
 
     # --------------------------------------------------------------------------
-    def resize_term(self, h: int, w: int) -> None:
+    def resize(self, h: int, w: int) -> None:
         try: self.stdscr.resize(h, w)
         except self.curses.error: pass
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def color_enabled(self) -> bool:
+    def supports_color(self) -> bool:
         try: return self.curses.can_change_color()
         except self.curses.error: return False
 
@@ -115,7 +115,7 @@ class CursesBackend(Backend):
         except self.curses.error: pass
 
     # --------------------------------------------------------------------------
-    def color_pair(self, i: int) -> int:
+    def get_color_pair(self, i: int) -> int:
         try: return self.curses.color_pair(i)
         except self.curses.error: return 0
 

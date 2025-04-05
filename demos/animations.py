@@ -56,7 +56,7 @@ class TUI(prisma.Terminal):
         self.box_0.set_pos(self.h // 2, (self.w - size) // 2)
         self.box_1.set_vel(1, 1)
 
-        self.canvas = self.root.new_layer()
+        self.canvas = self.root.create_layer()
 
     # --------------------------------------------------------------------------
     def on_update(self):
@@ -70,12 +70,12 @@ class TUI(prisma.Terminal):
         self.box_0.move()
         self.box_1.move()
 
-        self.canvas.add_matrix(*self.box_0.get_data())
-        self.canvas.add_matrix(*self.box_1.get_data())
+        self.canvas.draw_matrix(*self.box_0.get_data())
+        self.canvas.draw_matrix(*self.box_1.get_data())
 
         y, x, _ = self.box_0.get_data()
-        self.add_text('b','r', f"({y}, {x}) {curses.LINES} {curses.COLS}", curses.A_REVERSE)
-        self.add_text('b','l', f"Press F1 to exit (current key: {self.char})", curses.color_pair(1))
+        self.draw_text('b','r', f"({y}, {x}) {curses.LINES} {curses.COLS}", curses.A_REVERSE)
+        self.draw_text('b','l', f"Press F1 to exit (current key: {self.char})", curses.color_pair(1))
 
     # --------------------------------------------------------------------------
     def should_stop(self):

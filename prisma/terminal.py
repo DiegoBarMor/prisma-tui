@@ -2,7 +2,6 @@ import prisma
 
 # //////////////////////////////////////////////////////////////////////////////
 class Terminal:
-    # --------------------------------------------------------------------------
     def __init__(self):
         self.h: int = 0
         self.w: int = 0
@@ -21,11 +20,11 @@ class Terminal:
         self.set_fps(fps)
         try:
             prisma.BACKEND.start()
-            self._internal_on_start()
+            self._on_start()
             while self._running:
-                self._internal_on_resize()
-                self._internal_on_update()
-            self._internal_on_end()
+                self._on_resize()
+                self._on_update()
+            self._on_end()
         finally:
             prisma.BACKEND.end()
 
@@ -46,18 +45,19 @@ class Terminal:
             self._wait = lambda: prisma.BACKEND.sleep(self._nap_ms)
 
     # --------------------------------------------------------------------------
-    def set_size(self, h: int, w: int) -> None:
+    def resize_terminal(self, h: int, w: int) -> None:
         print(f"\x1b[8;{h};{w}t")
 
     # --------------------------------------------------------------------------
-    def add_text(self, *args, **kws) -> None:
-        self.root.add_text(*args, **kws)
+    def draw_text(self, *args, **kws) -> None:
+        self.root.draw_text(*args, **kws)
 
-    def add_matrix(self, *args, **kws) -> None:
-        self.root.add_matrix(*args, **kws)
+    def draw_matrix(self, *args, **kws) -> None:
+        self.root.draw_matrix(*args, **kws)
 
-    def add_border(self, *args, **kwds) -> None:
-        self.root.add_border(*args, **kwds)
+    def draw_border(self, *args, **kwds) -> None:
+        self.root.draw_border(*args, **kwds)
+
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def on_start(self) -> None:
@@ -77,52 +77,52 @@ class Terminal:
  
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def _internal_on_start(self) -> None:
+    def _on_start(self) -> None:
         self.root = prisma.Section()
         self.graphics = prisma.Graphics()
         self._running = True
-        prisma.BACKEND.nodelay(self._no_delay)
+        prisma.BACKEND.set_nodelay(self._no_delay)
         self.on_start()
 
     # --------------------------------------------------------------------------
-    def _internal_on_resize(self) -> None:
-        h,w = prisma.BACKEND.get_term_size(update = True)
+    def _on_resize(self) -> None:
+        h,w = prisma.BACKEND.get_size(update = True)
 
         if (self.h == h) and (self.w == w): return
 
         self.h = h; self.w = w
         self.root.update_size()
-        prisma.BACKEND.resize_term(self.h, self.w)
+        prisma.BACKEND.resize(self.h, self.w)
         self.on_resize()
 
     # --------------------------------------------------------------------------
-    def _internal_on_update(self) -> None:
+    def _on_update(self) -> None:
         self.root.clear()
         self.on_update()
-        self._draw()
+        self._render()
 
         self.char = prisma.BACKEND.get_key() 
         if self.should_stop(): self.stop()
         self._wait()
 
     # --------------------------------------------------------------------------
-    def _internal_on_end(self) -> None:
+    def _on_end(self) -> None:
         self.on_end()
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def _draw(self) -> None:
+    def _render(self) -> None:
         aggregate_layer = prisma.Layer(self.h, self.w)
-        for y,x,layer in self.root.compose():
-            aggregate_layer.add_layer(y, x, layer)
+        for y,x,layer in self.root.aggregate_layers():
+            aggregate_layer.merge_layer(y, x, layer)
 
         idx = 0
-        for chars,attr in aggregate_layer.get_strs():
+        for chars,attr in aggregate_layer.yield_render_data():
             y,x = divmod(idx, self.w)            
-            prisma.BACKEND.addstr(y, x, chars, attr)
+            prisma.BACKEND.write_text(y, x, chars, attr)
             idx += len(chars)
 
-        prisma.BACKEND.draw()
+        prisma.BACKEND.refresh()
 
 
 # //////////////////////////////////////////////////////////////////////////////

@@ -2,22 +2,20 @@ import prisma
 
 # //////////////////////////////////////////////////////////////////////////////
 class Graphics:
-
-    # --------------------------------------------------------------------------
     def __init__(self):
         self.palette: dict = {"colors": [], "pairs":  []}
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def set_palette_colors(self, colors) -> None:
+    def set_colors(self, colors) -> None:
         self.palette["colors"] = [[int(c) for c in color] for color in colors]
 
-    def set_palette_pairs(self, pairs) -> None:
+    def set_pairs(self, pairs) -> None:
         self.palette["pairs"] = [[int(p) for p in pair] for pair in pairs]
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def write_palette(self, path_pal: str) -> None:
+    def save_palette(self, path_pal: str) -> None:
         prisma.utils.write_json(path_pal, self.palette)
 
     # --------------------------------------------------------------------------
@@ -32,7 +30,7 @@ class Graphics:
         assert len(pairs) <= prisma.MAX_PALETTE_PAIRS, \
             f"Graphics has {len(pairs)} pairs, max is {prisma.MAX_PALETTE_PAIRS}."
 
-        if not prisma.BACKEND.color_enabled(): return
+        if not prisma.BACKEND.supports_color(): return
 
         for i,color in enumerate(colors):
             prisma.BACKEND.init_color(i, *color)
@@ -43,7 +41,7 @@ class Graphics:
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     @classmethod
-    def save_pri(cls, path_pri: str, chars: list[str], pairs: list[list[int]]) -> None:
+    def save_pixel_matrix(cls, path_pri: str, chars: list[str], pairs: list[list[int]]) -> None:
         h = len(chars)
         w = len(chars[0]) if h > 0 else 0
 
@@ -61,7 +59,7 @@ class Graphics:
 
     # --------------------------------------------------------------------------
     @classmethod
-    def load_pri(cls, path_pri: str) -> "prisma.PixelMatrix":
+    def load_pixel_matrix(cls, path_pri: str) -> "prisma.PixelMatrix":
         with open(path_pri, "rb") as file:
             h = int.from_bytes(file.read(2), byteorder="little")
             w = int.from_bytes(file.read(2), byteorder="little")
@@ -72,7 +70,7 @@ class Graphics:
             file.read(1) # skip a breakline character
 
             pairs = [[int(file.read(1)[0]) for _ in range(w)] for _ in range(h)]
-            attrs = [[prisma.BACKEND.color_pair(i) for i in row] for row in pairs]
+            attrs = [[prisma.BACKEND.get_color_pair(i) for i in row] for row in pairs]
         return prisma.PixelMatrix(h, w, chars.split('\n'), attrs)
 
 

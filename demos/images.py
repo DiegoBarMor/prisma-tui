@@ -9,10 +9,10 @@ class TUI(prisma.Terminal):
         self.graphics.load_palette("demos/data/cat.pal")
         curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_CYAN)
 
-        self.bg0 = self.root.new_layer()
-        self.bg1 = self.root.new_layer()
-        self.img = self.root.new_layer()
-        self.txt = self.root.new_layer()
+        self.bg0 = self.root.create_layer()
+        self.bg1 = self.root.create_layer()
+        self.img = self.root.create_layer()
+        self.txt = self.root.create_layer()
 
         shape = (curses.LINES, curses.COLS)
         chars_noise_0 = np.full(shape, ' ', dtype = "U1")
@@ -29,16 +29,16 @@ class TUI(prisma.Terminal):
 
         self.mat_noise_0 = prisma.PixelMatrix(*shape, chars_noise_0, attrs_noise_0)
         self.mat_noise_1 = prisma.PixelMatrix(*shape, chars_noise_1, attrs_noise_1)
-        self.mat_cat = self.graphics.load_pri("demos/data/cat.pri")
+        self.mat_cat = self.graphics.load_pixel_matrix("demos/data/cat.pri")
 
     # --------------------------------------------------------------------------
     def on_update(self):
-        self.bg0.add_matrix(0, 0, self.mat_noise_0.copy())
-        self.bg1.add_matrix(0, 0, self.mat_noise_1.copy())
-        self.img.add_matrix('c', 'c', self.mat_cat.copy())
+        self.bg0.draw_matrix(0, 0, self.mat_noise_0.copy())
+        self.bg1.draw_matrix(0, 0, self.mat_noise_1.copy())
+        self.img.draw_matrix('c', 'c', self.mat_cat.copy())
 
-        self.txt.add_text('b','l', "Press F1 to exit", curses.color_pair(1))
-        self.txt.add_text('t','r', f"{curses.LINES} {curses.COLS}", curses.A_REVERSE)
+        self.txt.draw_text('b','l', "Press F1 to exit", curses.color_pair(1))
+        self.txt.draw_text('t','r', f"{curses.LINES} {curses.COLS}", curses.A_REVERSE)
 
 
     # --------------------------------------------------------------------------
