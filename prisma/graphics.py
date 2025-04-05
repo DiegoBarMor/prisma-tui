@@ -65,7 +65,7 @@ class Graphics:
 
     # --------------------------------------------------------------------------
     @classmethod
-    def load_pri(cls, path_pri: str) -> tuple[list[str], list[list[int]]]:
+    def load_pri(cls, path_pri: str) -> "prisma.PixelMatrix":
         with open(path_pri, "rb") as file:
             h = int.from_bytes(file.read(2), byteorder="little")
             w = int.from_bytes(file.read(2), byteorder="little")
@@ -77,7 +77,7 @@ class Graphics:
 
             pairs = [[int(file.read(1)[0]) for _ in range(w)] for _ in range(h)]
             attrs = [[curses.color_pair(i) for i in row] for row in pairs]
-        return chars.split('\n'), attrs
+        return prisma.PixelMatrix(h, w, chars.split('\n'), attrs)
 
 
 # //////////////////////////////////////////////////////////////////////////////

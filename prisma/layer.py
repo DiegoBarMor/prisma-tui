@@ -28,19 +28,12 @@ class Layer:
         self._pixels.set_size(h, w)
 
     # --------------------------------------------------------------------------
-    def add_matrix(self, y, x, chars, attrs = None, transparency = True):
-        if not len(chars): return
-        if attrs is None: attrs = prisma.BLANK_ATTR
-        if isinstance(attrs, int):
-            attrs = [[attrs for _ in range(w)] for _ in range(h)]
-
-        h = min(len(chars), self.h)
-        w = min(max(map(len, chars)), self.w)
-        chars = chars[:h][:w]
-        attrs = attrs[:h][:w]
+    def add_matrix(self, y, x, matrix: "prisma.PixelMatrix", transparency = True):
+        h = min(matrix.h, self.h)
+        w = min(matrix.w, self.w)
+        matrix.set_size(h, w)
         y, x = self._parse_coords(h, w, y, x)
-        pixel_mat = prisma.PixelMatrix(h, w, chars, attrs)
-        self.stamp(y, x, pixel_mat, transparency)
+        self.stamp(y, x, matrix, transparency)
 
     # --------------------------------------------------------------------------
     def add_text(self, y, x, string, attr = None, transparency = True, cut: dict[str, str] = {}):
@@ -59,8 +52,8 @@ class Layer:
         chars = self._parse_cut(y, x, cut, chars)
         attrs = [[attr for _ in row] for row in chars]
 
-        pixel_mat = prisma.PixelMatrix(h, w, chars, attrs)
-        self.stamp(y, x, pixel_mat, transparency)
+        matrix = prisma.PixelMatrix(h, w, chars, attrs)
+        self.stamp(y, x, matrix, transparency)
 
     # --------------------------------------------------------------------------
     def add_border(self,
@@ -68,16 +61,25 @@ class Layer:
         tl = '┌', tr = '┐', bl = '└', br = '┘',
         attr = None
     ):
-        # [TODO] apply the attr
         if attr is None: attr = prisma.BLANK_ATTR
 
         h = self.h - 2
         w = self.w - 2
-        self.add_text(0,0, '\n'.join((
-            tl + w*ts + tr,
-            *[ls + w*prisma.BLANK_CHAR + rs]*h,
-            bl + w*bs + br,
-        )))
+        BC = prisma.BLANK_CHAR
+        BA = prisma.BLANK_ATTR
+        self.add_matrix(
+            0,0, prisma.PixelMatrix(
+                self.h, self.w,
+                chars = \
+                    [tl + ts*w + tr] +\
+                    [ls + BC*w + rs]*h +\
+                    [bl + bs*w + br],
+                attrs = \
+                    [[attr] + [attr]*w + [attr]] +\
+                    [[attr] + [ BA ]*w + [attr]]*h +\
+                    [[attr] + [attr]*w + [attr]]
+            )
+        )
 
     # --------------------------------------------------------------------------
     def _parse_coords(self, h, w, y, x):
