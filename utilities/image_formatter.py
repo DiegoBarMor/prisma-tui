@@ -102,7 +102,7 @@ if __name__ == "__main__":
     arr = to_palette_values(img, colors)
 
     chars = np.full_like(arr, ' ', dtype = str)
-    chars[arr > 0] = '	'
+    chars[arr > 0] = ' '
     chars = [''.join(row) for row in chars]
 
     prisma.Graphics.save_pri(

@@ -39,8 +39,7 @@ class Section:
         return child
 
     def iter_children(self):
-        for child in self._children:
-            yield child
+        return iter(self._children)
 
     def iter_layers(self):
         yield self.main_layer
@@ -115,12 +114,12 @@ class Section:
             child.clear()
 
 
-    def draw(self) -> Generator[tuple[int, int, "prisma.Layer"], None, None]:
+    def compose(self) -> Generator[tuple[int, int, "prisma.Layer"], None, None]:
         for layer in self.iter_layers():
             yield self.y, self.x, layer
 
         for child in self.iter_children():
-            for out in child.draw():
+            for out in child.compose():
                 yield out
 
 
@@ -150,6 +149,9 @@ class Section:
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def add_text(self, *args, **kwds):
         self.main_layer.add_text(*args, **kwds)
+
+    def add_matrix(self, *args, **kwds):
+        self.main_layer.add_matrix(*args, **kwds)
 
 
     # --------------------------------------------------------------------------

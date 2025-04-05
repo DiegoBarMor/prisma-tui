@@ -14,13 +14,10 @@ class Layer:
 
     # --------------------------------------------------------------------------
     def add_layer(self, y: int, x: int, other: "Layer") -> "Layer":
-        self._stamp(y, x, other._pixels, other._transparency)
+        self.stamp(y, x, other._pixels, other._transparency)
         return self
 
     # --------------------------------------------------------------------------
-    def _new_subrow(self, length, char = prisma.BLANK_CHAR, attr = prisma.BLANK_ATTR):
-        return [prisma.Pixel(char, attr) for _ in range(length)]
-
     def clear(self):
         self._pixels.reset()
 
@@ -31,11 +28,7 @@ class Layer:
         self._pixels.set_size(h, w)
 
     # --------------------------------------------------------------------------
-    def _pixel_matrix(self, mat_chars, mat_attrs):
-        return [[prisma.Pixel(c,a) for c,a in zip(row_chars, row_attrs)] for row_chars, row_attrs in zip(mat_chars, mat_attrs)]
-
-    # --------------------------------------------------------------------------
-    def add_block(self, y, x, chars, attrs = None, transparency = True):
+    def add_matrix(self, y, x, chars, attrs = None, transparency = True):
         if not len(chars): return
         if attrs is None: attrs = prisma.BLANK_ATTR
         if isinstance(attrs, int):
@@ -46,7 +39,8 @@ class Layer:
         chars = chars[:h][:w]
         attrs = attrs[:h][:w]
         y, x = self._parse_coords(h, w, y, x)
-        self._stamp(y, x, self._pixel_matrix(chars, attrs), transparency)
+        pixel_mat = prisma.PixelMatrix.from_data(h, w, chars, attrs)
+        self.stamp(y, x, pixel_mat, transparency)
 
     # --------------------------------------------------------------------------
     def add_text(self, y, x, string, attr = None, transparency = True, cut: dict[str, str] = {}):
@@ -65,7 +59,8 @@ class Layer:
         chars = self._parse_cut(y, x, cut, chars)
         attrs = [[attr for _ in row] for row in chars]
 
-        self._stamp(y, x, self._pixel_matrix(chars, attrs), transparency)
+        pixel_mat = prisma.PixelMatrix.from_data(h, w, chars, attrs)
+        self.stamp(y, x, pixel_mat, transparency)
 
 
     # --------------------------------------------------------------------------
@@ -122,7 +117,7 @@ class Layer:
 
 
     # --------------------------------------------------------------------------
-    def _stamp(self, y, x, data, transparency):
+    def stamp(self, y, x, data, transparency):
         if (y >= self.h) or (x >= self.w): return
         if not len(data): return
 

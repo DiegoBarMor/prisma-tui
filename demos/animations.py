@@ -57,21 +57,18 @@ class TUI(prisma.Terminal):
 
     # --------------------------------------------------------------------------
     def on_update(self):
-        # curses.flushinp()
-        # while self.char != -1:
         match self.char:
             case 119 | curses.KEY_UP:    self.box_0.set_vel(-1,  0)
             case 97  | curses.KEY_LEFT:  self.box_0.set_vel( 0, -1)
             case 115 | curses.KEY_DOWN:  self.box_0.set_vel( 1,  0)
             case 100 | curses.KEY_RIGHT: self.box_0.set_vel( 0,  1)
             case _: self.box_0.set_vel(0, 0)
-            # self.char = self.stdscr.getch()
 
         self.box_0.move()
         self.box_1.move()
 
-        self.canvas.add_block(*self.box_0.get_data())
-        self.canvas.add_block(*self.box_1.get_data())
+        self.canvas.add_matrix(*self.box_0.get_data())
+        self.canvas.add_matrix(*self.box_1.get_data())
 
         y, x, _, _ = self.box_0.get_data()
         self.add_text('b','r', f"({y}, {x}) {curses.LINES} {curses.COLS}", curses.A_REVERSE)
