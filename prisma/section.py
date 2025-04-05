@@ -18,7 +18,7 @@ class Section:
         self._layers = [prisma.Layer(self.h, self.w)]
 
 
-    # --------------------------------------------------------------------------
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def set_parent(self, parent: "Section") -> None:
         self._parent = parent
         parent._children.append(self)
@@ -52,7 +52,24 @@ class Section:
         return section_dict
 
 
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    def get_size(self) -> tuple[int, int]:
+        return self.h, self.w
+
     # --------------------------------------------------------------------------
+    def get_position(self) -> tuple[int, int]:
+        return self.y, self.x
+
+    # --------------------------------------------------------------------------
+    def get_bottom_layer(self) -> prisma.Layer:
+        return self._layers[0]
+
+    # --------------------------------------------------------------------------
+    def get_top_layer(self) -> prisma.Layer:
+        return self._layers[-1]
+
+
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def iter_children(self):
         return iter(self._children)
 
@@ -68,7 +85,6 @@ class Section:
         for child in self.iter_children():
             child.clear()
 
-
     # --------------------------------------------------------------------------
     def aggregate_layers(self) -> Generator[tuple[int, int, "prisma.Layer"], None, None]:
         for layer in self.iter_layers():
@@ -77,7 +93,6 @@ class Section:
         for child in self.iter_children():
             for out in child.aggregate_layers():
                 yield out
-
 
     # --------------------------------------------------------------------------
     def update_size(self) -> None:
@@ -89,26 +104,16 @@ class Section:
         for child in self.iter_children():
             child.update_size()
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def get_size(self) -> tuple[int, int]:
-        return self.h, self.w
-
-    def get_position(self) -> tuple[int, int]:
-        return self.y, self.x
-
-    def get_bottom_layer(self) -> prisma.Layer:
-        return self._layers[0]
-
-    def get_top_layer(self) -> prisma.Layer:
-        return self._layers[-1]
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def draw_text(self, *args, **kwds):
         self.get_top_layer().draw_text(*args, **kwds)
 
+    # --------------------------------------------------------------------------
     def draw_matrix(self, *args, **kwds):
         self.get_top_layer().draw_matrix(*args, **kwds)
 
+    # --------------------------------------------------------------------------
     def draw_border(self, *args, **kwds):
         self.get_top_layer().draw_border(*args, **kwds)
 
@@ -152,7 +157,6 @@ class Section:
 
         if y_outbounds > 0: self.y -= y_outbounds
         if x_outbounds > 0: self.x -= x_outbounds
-
 
 
 # //////////////////////////////////////////////////////////////////////////////

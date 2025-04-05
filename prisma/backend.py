@@ -4,37 +4,37 @@ from abc import ABC, abstractmethod
 class Backend(ABC):
     @abstractmethod
     def start(self) -> None: pass
-    
+
     @abstractmethod
     def end(self) -> None: pass
-    
+
     @abstractmethod
     def set_nodelay(self, boolean: bool) -> None: pass
-    
+
     @abstractmethod
     def write_text(self, y: int, x: int, chars: str, attr: int = 0) -> None: pass
-    
+
     @abstractmethod
     def refresh(self) -> None: pass
-    
+
     @abstractmethod
     def get_key(self) -> int: pass
-    
+
     @abstractmethod
     def get_size(self, update = False) -> tuple[int,int]: pass
-    
+
     @abstractmethod
     def resize(self, h: int, w: int) -> None: pass
-    
+
     @abstractmethod
     def sleep(self, ms: int) -> None: pass
-    
+
     @abstractmethod
     def supports_color(self) -> bool: pass
-    
+
     @abstractmethod
     def init_color(self, i: int, r: int, g: int, b: int) -> None: pass
-    
+
     @abstractmethod
     def init_pair(self, i: int, fg: int, bg: int) -> None: pass
 
@@ -108,7 +108,7 @@ class CursesBackend(Backend):
     def init_color(self, i: int, r: int, g: int, b: int) -> None:
         try: self.curses.init_color(i, r, g, b)
         except self.curses.error: pass
-    
+
     # --------------------------------------------------------------------------
     def init_pair(self, i: int, fg: int, bg: int) -> None:
         try: self.curses.init_pair(i, fg, bg)

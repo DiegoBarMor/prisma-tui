@@ -13,7 +13,6 @@ def apply_mask(idxs, mat, char):
     ))
     return tuple(tuple(n[0] for n in arr) for arr in mat_out if arr)
 
-
 # ------------------------------------------------------------------------------
 def all_elements_equal(iterable):
     iterator = iter(iterable)
@@ -21,14 +20,12 @@ def all_elements_equal(iterable):
     except StopIteration: return True
     return all(first == rest for rest in iterator)
 
-
 # ------------------------------------------------------------------------------
 def is_sequential(iterable):
     iterator = iter(iterable)
     try: first = next(iterator)
     except StopIteration: return True
     return all(i == element for i,element in enumerate(iterator, start = first + 1))
-
 
 # ------------------------------------------------------------------------------
 def mosaic(layout, divider = '\n'):

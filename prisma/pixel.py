@@ -6,9 +6,6 @@ class Pixel:
         self._char = char
         self._attr = attr
 
-    # --------------------------------------------------------------------------
-    def __repr__(self):
-        return f"Pixel({self._char}, {self._attr})"
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def overwrite(self, other: "Pixel") -> "Pixel":
@@ -36,7 +33,6 @@ class PixelMatrix:
             for row_chars, row_attrs in zip(chars, attrs)
         ]
 
-
     # --------------------------------------------------------------------------
     def __getitem__(self, index):
         return self._data[index]
@@ -53,11 +49,6 @@ class PixelMatrix:
     def __len__(self):
         return len(self._data)
 
-    # --------------------------------------------------------------------------
-    def __repr__(self):
-        f = lambda p: p if p._char != prisma.BLANK_CHAR \
-            else   ('*' if p._attr != prisma.BLANK_ATTR else ' ')
-        return '\n'.join(''.join(f(pixel) for pixel in row) for row in self._data)
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def reset(self):
@@ -70,7 +61,7 @@ class PixelMatrix:
             ((p._char for p in row) for row in self._data),
             ((p._attr for p in row) for row in self._data)
         )
-        
+
     # --------------------------------------------------------------------------
     def get_chars(self):
         return [[pixel._char for pixel in row] for row in self._data]
@@ -88,6 +79,7 @@ class PixelMatrix:
         if   w < self.w: self._remove_cols(w)
         elif w > self.w: self._add_cols(w - self.w)
         self.w = w
+
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _create_row(self, length):
@@ -108,7 +100,6 @@ class PixelMatrix:
     # --------------------------------------------------------------------------
     def _remove_cols(self, n):
         self._data = [row[:n] for row in self._data]
-
 
 
 # //////////////////////////////////////////////////////////////////////////////

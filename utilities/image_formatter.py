@@ -19,7 +19,6 @@ def sep_channels(img: np.array) -> tuple[np.array]:
 # ------------------------------------------------------------------------------
 def rgb2curses(rgb):
     return 1000 * rgb.astype(int) / 255
-    # return tuple(int(1000 * int(c) / 255) for c in rgb)
 
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

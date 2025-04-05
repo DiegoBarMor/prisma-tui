@@ -10,6 +10,7 @@ class Graphics:
     def set_colors(self, colors) -> None:
         self.palette["colors"] = [[int(c) for c in color] for color in colors]
 
+    # --------------------------------------------------------------------------
     def set_pairs(self, pairs) -> None:
         self.palette["pairs"] = [[int(p) for p in pair] for pair in pairs]
 

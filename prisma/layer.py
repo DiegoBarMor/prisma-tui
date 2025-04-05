@@ -44,12 +44,10 @@ class Layer:
         h = min(len(rows), self.h)
         w = min(max(map(len, rows)), self.w)
 
-        chars = [row.ljust(w, prisma.BLANK_CHAR)[:w] for row in rows[:h]]
-
         y, x = self._parse_coords(h, w, y, x)
-
         if (x >= self.w) or (y >= self.h): return
 
+        chars = [row.ljust(w, prisma.BLANK_CHAR)[:w] for row in rows[:h]]
         chars = self._parse_cut(y, x, cut, chars)
         attrs = [[attr for _ in row] for row in chars]
 

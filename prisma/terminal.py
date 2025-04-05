@@ -52,9 +52,11 @@ class Terminal:
     def draw_text(self, *args, **kws) -> None:
         self.root.draw_text(*args, **kws)
 
+    # --------------------------------------------------------------------------
     def draw_matrix(self, *args, **kws) -> None:
         self.root.draw_matrix(*args, **kws)
 
+    # --------------------------------------------------------------------------
     def draw_border(self, *args, **kwds) -> None:
         self.root.draw_border(*args, **kwds)
 
@@ -63,18 +65,22 @@ class Terminal:
     def on_start(self) -> None:
         return # overridden by user
 
+    # --------------------------------------------------------------------------
     def on_resize(self) -> None:
         return # overridden by user
 
+    # --------------------------------------------------------------------------
     def on_update(self) -> None:
         return # overridden by user
 
+    # --------------------------------------------------------------------------
     def on_end(self) -> None:
         return # overridden by user
 
+    # --------------------------------------------------------------------------
     def should_stop(self) -> bool:
         return False # overridden by user
- 
+
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _on_start(self) -> None:
@@ -101,7 +107,7 @@ class Terminal:
         self.on_update()
         self._render()
 
-        self.char = prisma.BACKEND.get_key() 
+        self.char = prisma.BACKEND.get_key()
         if self.should_stop(): self.stop()
         self._wait()
 
@@ -118,7 +124,7 @@ class Terminal:
 
         idx = 0
         for chars,attr in aggregate_layer.yield_render_data():
-            y,x = divmod(idx, self.w)            
+            y,x = divmod(idx, self.w)
             prisma.BACKEND.write_text(y, x, chars, attr)
             idx += len(chars)
 
