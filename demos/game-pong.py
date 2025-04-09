@@ -12,11 +12,13 @@ class Actor:
         self.x = 0
         self.dy = 0
         self.dx = 0
+        self._y_float = 0.0
+        self._x_float = 0.0
 
     # --------------------------------------------------------------------------
     def set_pos(self, y, x):
-        self.y = y
-        self.x = x
+        self.y = self._y_float = y
+        self.x = self._x_float = x
 
     def set_vel(self, dy, dx):
         self.dy = dy
@@ -25,8 +27,12 @@ class Actor:
     # --------------------------------------------------------------------------
     def move(self, boundaries):
         ymin, xmin, ymax, xmax = boundaries
-        self.y = round(max(ymin, min(self.y + self.dy, ymax)))
-        self.x = round(max(xmin, min(self.x + self.dx, xmax)))
+        
+        self._y_float = max(ymin, min(self._y_float + self.dy, ymax))
+        self._x_float = max(xmin, min(self._x_float + self.dx, xmax))
+        self.y = round(self._y_float)
+        self.x = round(self._x_float)
+        
 
     def stamp_to_field(self, field: "Field"):
         pass
@@ -45,6 +51,52 @@ class Ball(Actor):
     def reset(self):
         pass
 
+    def randomize_dy(self):
+        self.dy = (np.random.random()-0.5) * 4
+
+
+# //////////////////////////////////////////////////////////////////////////////
+class Overlay:
+    def __init__(self):
+        self._empty = prisma.PixelMatrix(0,0)
+    
+        chars_3 = [
+            "33333",
+            "   33",
+            "33333",
+            "   33",
+            "33333",
+        ]
+        chars_2 = [
+            "22222",
+            "   22",
+            "22222",
+            "22   ",
+            "22222",
+        ]
+        chars_1 = [
+            "   11",
+            "   11",
+            "   11",
+            "   11",
+            "   11",
+        ]
+        self._number_3 = prisma.PixelMatrix(
+            len(chars_3), len(chars_3[0]),
+            chars = chars_3,
+            attrs = [[0 for _ in row] for row in chars_3]
+        )
+
+        self._number_2 = self._number_3
+        self._number_1 = self._number_3
+
+    def display_num(self, n):
+        match n:
+            case 3: return self._number_3
+            case 2: return self._number_2
+            case 1: return self._number_1
+            case 0: return self._empty
+            
 
 # //////////////////////////////////////////////////////////////////////////////
 class Field:
@@ -56,8 +108,14 @@ class Field:
     PAD_H = 5
     PAD_W = 2
     PAD_X = 3
+
     BALL_R = 2
+    BALL_DX = 0.5
+    BALL_DY_MAX = 2
+    
     SCORE_TO_WIN = 5
+
+    WAIT_SECONDS = 3
 
     def __init__(self, h, w):
         self.h = h
@@ -65,9 +123,11 @@ class Field:
         self.score0 = 0
         self.score1 = 0
 
+        self._time = time.time()        
+
         self._arr = np.zeros((h, w))
-        self._char_map = [' ', ' ', '+', '#']
-        self._attr_map = [0, curses.color_pair(2), curses.A_BOLD, curses.A_BOLD]
+        self._char_map = [' ', ' ', '+', '#', '*']
+        self._attr_map = [0, curses.color_pair(2), curses.A_BOLD, curses.A_BOLD, curses.color_pair(2)]
 
         self.p0_x = self.PAD_X
         self.p1_x = self.w - (self.PAD_X + self.PAD_W)
@@ -80,6 +140,9 @@ class Field:
 
         self._ball = Ball(self.BALL_R, self.BALL_R)
         self._next_round()
+
+        self._overlay = Overlay()
+
 
 
     def handle_input(self, key):
@@ -107,19 +170,23 @@ class Field:
 
     def _next_round(self):
         if self._ball.x > self.w // 2:
-            dx_init = -1
+            dx_init = -self.BALL_DX
         else:
-            dx_init = 1
-
-        dy_init = np.random.random() * 2
+            dx_init = self.BALL_DX
 
         self._ball.set_pos(
             (self.h - self.BALL_R) // 2,
             (self.w - self.BALL_R) // 2
         )
-        self._ball.set_vel(dy_init, dx_init)
+        self._ball.randomize_dy()
+        self._ball.dx = dx_init
+        self._time = time.time()        
+
+        self._overlay_num = 0
 
     def update(self):
+
+    
         boundaries_pad = (1, 1,
             self.h - (self.PAD_H + 1),
             self.w - (self.PAD_W + 1)
@@ -131,8 +198,12 @@ class Field:
 
         self._player0.move(boundaries_pad)
         self._player1.move(boundaries_pad)
-        self._ball.move(boundaries_ball)
 
+        dt = time.time() - self._time
+        if dt > self.WAIT_SECONDS:
+            self._ball.move(boundaries_ball)
+
+        self._overlay_num = round(max(0, self.WAIT_SECONDS - dt))
 
         arr_d0 = self._slice_arr(self.h, self.PAD_W, 0, self.p0_x)
         arr_d1 = self._slice_arr(self.h, self.PAD_W, 0, self.p1_x)
@@ -142,6 +213,7 @@ class Field:
 
 
         if np.any(arr_ba == self.PLAYER_PAD):
+            self._ball.randomize_dy()
             self._ball.dx = -self._ball.dx
             self._ball.move(boundaries_ball) # avoid cliping with pad
 
@@ -159,11 +231,13 @@ class Field:
 
 
     def get_matrix(self):
-        return prisma.PixelMatrix(
+        base = prisma.PixelMatrix(
             *self._arr.shape,
             chars = [[self._char_map[int(i)] for i in row] for row in self._arr],
             attrs = [[self._attr_map[int(i)] for i in row] for row in self._arr]
         )
+        overlay = self._overlay.display_num(self._overlay_num)
+        return base
 
 
 
@@ -175,6 +249,7 @@ class TUI(prisma.Terminal):
         curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_GREEN)
 
         self.canvas = self.root.create_child(0.8, 1.0, 0.2, 0)
+        # self.overlay = self.canvas.create_layer()
         self.first_iter = True
 
     # --------------------------------------------------------------------------
