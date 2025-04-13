@@ -86,13 +86,12 @@ class Section:
             child.clear()
 
     # --------------------------------------------------------------------------
-    def aggregate_layers(self) -> Generator[tuple[int, int, "prisma.Layer"], None, None]:
+    def aggregate_layers(self, agg_layer: prisma.Layer) -> Generator[tuple[int, int, "prisma.Layer"], None, None]:
         for layer in self.iter_layers():
-            yield self.y, self.x, layer
+            agg_layer.draw_layer(self.y, self.x, layer, layer._transparency)
 
         for child in self.iter_children():
-            for out in child.aggregate_layers():
-                yield out
+            child.aggregate_layers(agg_layer)
 
     # --------------------------------------------------------------------------
     def update_size(self) -> None:
@@ -110,8 +109,8 @@ class Section:
         self.get_top_layer().draw_text(*args, **kwds)
 
     # --------------------------------------------------------------------------
-    def draw_matrix(self, *args, **kwds):
-        self.get_top_layer().draw_matrix(*args, **kwds)
+    def draw_layer(self, *args, **kwds):
+        self.get_top_layer().draw_layer(*args, **kwds)
 
     # --------------------------------------------------------------------------
     def draw_border(self, *args, **kwds):

@@ -11,7 +11,7 @@ ALPHA_THRESHOLD = 128
 # --------------------------------------------------------------------------
 from .graphics import Graphics
 from .layer import Layer
-from .pixel import Pixel, PixelMatrix
+from .pixel import Pixel
 from .section import Section
 from .terminal import Terminal
 from .utils import Debug

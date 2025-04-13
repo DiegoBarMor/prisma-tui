@@ -27,15 +27,15 @@ class TUI(prisma.Terminal):
         attrs_noise_0[noise_0] = curses.A_BOLD
         attrs_noise_1[noise_1] = curses.A_DIM
 
-        self.mat_noise_0 = prisma.PixelMatrix(*shape, chars_noise_0, attrs_noise_0)
-        self.mat_noise_1 = prisma.PixelMatrix(*shape, chars_noise_1, attrs_noise_1)
-        self.mat_cat = self.graphics.load_pixel_matrix("demos/data/cat.pri")
+        self.layer_noise_0 = prisma.Layer(*shape, chars_noise_0, attrs_noise_0)
+        self.layer_noise_1 = prisma.Layer(*shape, chars_noise_1, attrs_noise_1)
+        self.layer_cat = self.graphics.load_layer("demos/data/cat.pri")
 
     # --------------------------------------------------------------------------
     def on_update(self):
-        self.bg0.draw_matrix(0, 0, self.mat_noise_0.copy())
-        self.bg1.draw_matrix(0, 0, self.mat_noise_1.copy())
-        self.img.draw_matrix('c', 'c', self.mat_cat.copy())
+        self.bg0.draw_layer(0, 0, self.layer_noise_0.copy())
+        self.bg1.draw_layer(0, 0, self.layer_noise_1.copy())
+        self.img.draw_layer('c', 'c', self.layer_cat.copy())
 
         self.txt.draw_text('b','l', "Press F1 to exit", curses.color_pair(1))
         self.txt.draw_text('t','r', f"{curses.LINES} {curses.COLS}", curses.A_REVERSE)

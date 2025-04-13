@@ -42,7 +42,7 @@ class Graphics:
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     @classmethod
-    def save_pixel_matrix(cls, path_pri: str, chars: list[str], pairs: list[list[int]]) -> None:
+    def save_layer(cls, path_pri: str, chars: list[str], pairs: list[list[int]]) -> None:
         h = len(chars)
         w = len(chars[0]) if h > 0 else 0
 
@@ -60,7 +60,7 @@ class Graphics:
 
     # --------------------------------------------------------------------------
     @classmethod
-    def load_pixel_matrix(cls, path_pri: str) -> "prisma.PixelMatrix":
+    def load_layer(cls, path_pri: str) -> "prisma.Layer":
         with open(path_pri, "rb") as file:
             h = int.from_bytes(file.read(2), byteorder="little")
             w = int.from_bytes(file.read(2), byteorder="little")
@@ -72,7 +72,7 @@ class Graphics:
 
             pairs = [[int(file.read(1)[0]) for _ in range(w)] for _ in range(h)]
             attrs = [[prisma.BACKEND.get_color_pair(i) for i in row] for row in pairs]
-        return prisma.PixelMatrix(h, w, chars.split('\n'), attrs)
+        return prisma.Layer(h, w, chars.split('\n'), attrs)
 
 
 # //////////////////////////////////////////////////////////////////////////////

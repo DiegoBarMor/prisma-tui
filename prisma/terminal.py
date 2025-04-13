@@ -53,8 +53,8 @@ class Terminal:
         self.root.draw_text(*args, **kws)
 
     # --------------------------------------------------------------------------
-    def draw_matrix(self, *args, **kws) -> None:
-        self.root.draw_matrix(*args, **kws)
+    def draw_layer(self, *args, **kws) -> None:
+        self.root.draw_layer(*args, **kws)
 
     # --------------------------------------------------------------------------
     def draw_border(self, *args, **kwds) -> None:
@@ -118,12 +118,11 @@ class Terminal:
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _render(self) -> None:
-        aggregate_layer = prisma.Layer(self.h, self.w)
-        for y,x,layer in self.root.aggregate_layers():
-            aggregate_layer.merge_layer(y, x, layer)
+        master_layer = prisma.Layer(self.h, self.w)
+        self.root.aggregate_layers(master_layer)
 
         idx = 0
-        for chars,attr in aggregate_layer.yield_render_data():
+        for chars,attr in master_layer.yield_render_data():
             y,x = divmod(idx, self.w)
             prisma.BACKEND.write_text(y, x, chars, attr)
             idx += len(chars)

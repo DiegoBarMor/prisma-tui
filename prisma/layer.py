@@ -2,39 +2,64 @@ import prisma
 
 # //////////////////////////////////////////////////////////////////////////////
 class Layer:
-    def __init__(self, h, w):
+    def __init__(self, h, w, chars: list[str] = None, attrs: list[list[int]] = None):
+        if chars is None: chars = ((prisma.BLANK_CHAR for _ in range(w)) for _ in range(h))
+        if attrs is None: attrs = ((prisma.BLANK_ATTR for _ in range(w)) for _ in range(h))
         self.h = h
         self.w = w
+        self._data: list[list[prisma.Pixel]] = self.get_pixel_mat(chars, attrs)
         self._transparency = True
-        self._pixels = prisma.PixelMatrix(h, w)
+
+
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    @classmethod
+    def get_pixel_mat(cls, chars, attrs):
+        return [
+            [prisma.Pixel(c,a) for c,a in zip(row_chars, row_attrs)]
+            for row_chars, row_attrs in zip(chars, attrs)
+        ]
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def set_size(self, h, w):
+        if   h < self.h: self._remove_rows(h)
+        elif h > self.h: self._add_rows(h - self.h)
         self.h = h
+
+        if   w < self.w: self._remove_cols(w)
+        elif w > self.w: self._add_cols(w - self.w)
         self.w = w
-        self._pixels.set_size(h, w)
 
     # --------------------------------------------------------------------------
     def set_transparency(self, transparency: bool) -> None:
         self._transparency = transparency
 
     # --------------------------------------------------------------------------
-    def clear(self):
-        self._pixels.reset()
+    def get_chars(self):
+        return [[pixel._char for pixel in row] for row in self._data]
 
     # --------------------------------------------------------------------------
-    def merge_layer(self, y: int, x: int, other: "Layer"):
-        self._stamp(y, x, other._pixels, other._transparency)
+    def get_attrs(self):
+        return [[pixel._attr for pixel in row] for row in self._data]
+
+    # --------------------------------------------------------------------------
+    def copy(self):
+        return Layer(self.h, self.w, self.get_chars(), self.get_attrs())
+
+    # --------------------------------------------------------------------------
+    def clear(self):
+        self._data = [self._create_row(self.w) for _ in range(self.h)]
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def draw_matrix(self, y, x, matrix: "prisma.PixelMatrix", transparency = True):
-        h = min(matrix.h, self.h)
-        w = min(matrix.w, self.w)
-        matrix.set_size(h, w)
+    def draw_layer(self, y, x, layer: "Layer", transparency = True):
+        # rename to "merge_layer"?
+        h = min(layer.h, self.h)
+        w = min(layer.w, self.w)
+        layer = layer.copy()
+        layer.set_size(h, w)
         y, x = self._parse_coords(h, w, y, x)
-        self._stamp(y, x, matrix, transparency)
+        self._stamp(y, x, layer._data, transparency)
 
     # --------------------------------------------------------------------------
     def draw_text(self, y, x, string, attr = None, transparency = True, cut: dict[str, str] = {}):
@@ -50,15 +75,14 @@ class Layer:
         chars = [row.ljust(w, prisma.BLANK_CHAR)[:w] for row in rows[:h]]
         chars = self._parse_cut(y, x, cut, chars)
         attrs = [[attr for _ in row] for row in chars]
-
-        matrix = prisma.PixelMatrix(h, w, chars, attrs)
-        self._stamp(y, x, matrix, transparency)
+        data = self.get_pixel_mat(chars, attrs)
+        self._stamp(y, x, data, transparency)
 
     # --------------------------------------------------------------------------
     def draw_border(self,
         ls = '│', rs = '│', ts = '─', bs = '─',
         tl = '┌', tr = '┐', bl = '└', br = '┘',
-        attr = None
+        attr = None, transparency = True
     ):
         if attr is None: attr = prisma.BLANK_ATTR
 
@@ -66,25 +90,23 @@ class Layer:
         w = self.w - 2
         BC = prisma.BLANK_CHAR
         BA = prisma.BLANK_ATTR
-        self.draw_matrix(
-            0,0, prisma.PixelMatrix(
-                self.h, self.w,
-                chars = \
-                    [tl + ts*w + tr] +\
-                    [ls + BC*w + rs]*h +\
-                    [bl + bs*w + br],
-                attrs = \
-                    [[attr] + [attr]*w + [attr]] +\
-                    [[attr] + [ BA ]*w + [attr]]*h +\
-                    [[attr] + [attr]*w + [attr]]
-            )
+        data = self.get_pixel_mat(
+            chars = \
+                [tl + ts*w + tr] +\
+                [ls + BC*w + rs]*h +\
+                [bl + bs*w + br],
+            attrs = \
+                [[attr] + [attr]*w + [attr]] +\
+                [[attr] + [ BA ]*w + [attr]]*h +\
+                [[attr] + [attr]*w + [attr]]
         )
+        self._stamp(0, 0, data, transparency)
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def yield_render_data(self):
-        flat_chars = ''.join(''.join(pixel._char for pixel in row) for row in self._pixels)
-        flat_attrs = [pixel._attr for row in self._pixels for pixel in row]
+        flat_chars = ''.join(''.join(pixel._char for pixel in row) for row in self._data)
+        flat_attrs = [pixel._attr for row in self._data for pixel in row]
 
         attrs_offset_0 = flat_attrs[:-1]
         attrs_offset_1 = flat_attrs[1:]
@@ -147,15 +169,36 @@ class Layer:
         y1 = min(y + h, self.h)
         x1 = min(x + w, self.w)
 
-        mat_orig = self._pixels[y0:y1]
+        mat_orig = self._data[y0:y1]
         mat_modf = data[:y1-y]
 
-        self._pixels[y0:y1] = [
+        self._data[y0:y1] = [
             row_orig[:x0] + [
                 func(o,m) for o,m in zip(row_orig[x0:x1], row_modf[:x1-x])
             ] + row_orig[x1:]
             for row_orig, row_modf in zip(mat_orig, mat_modf)
         ]
+
+
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    def _create_row(self, length):
+        return [prisma.Pixel() for _ in range(length)]
+
+    # --------------------------------------------------------------------------
+    def _add_rows(self, n):
+        self._data += [self._create_row(self.w) for _ in range(n)]
+
+    # --------------------------------------------------------------------------
+    def _add_cols(self, n):
+        self._data = [row + self._create_row(n) for row in self._data]
+
+    # --------------------------------------------------------------------------
+    def _remove_rows(self, n):
+        self._data = self._data[:n]
+
+    # --------------------------------------------------------------------------
+    def _remove_cols(self, n):
+        self._data = [row[:n] for row in self._data]
 
 
 # //////////////////////////////////////////////////////////////////////////////

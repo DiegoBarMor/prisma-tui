@@ -104,7 +104,7 @@ if __name__ == "__main__":
     chars[arr > 0] = ' '
     chars = [''.join(row) for row in chars]
 
-    prisma.Graphics.save_pixel_matrix(
+    prisma.Graphics.save_layer(
         path_img.with_suffix(".pri"),
         chars = chars, pairs = arr
     )

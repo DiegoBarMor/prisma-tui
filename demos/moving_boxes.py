@@ -5,7 +5,7 @@ import prisma
 class Box:
     def __init__(self, size, char, attr):
         self.size = size
-        self.mat = prisma.PixelMatrix(
+        self.layer = prisma.Layer(
             size, size,
             chars = [[char for _ in range(size)] for _ in range(size)],
             attrs = [[attr for _ in range(size)] for _ in range(size)]
@@ -25,7 +25,7 @@ class Box:
         self.dx = dx
 
     def get_data(self):
-        return self.y, self.x, self.mat
+        return self.y, self.x, self.layer
 
     # --------------------------------------------------------------------------
     def move(self):
@@ -70,8 +70,8 @@ class TUI(prisma.Terminal):
         self.box_0.move()
         self.box_1.move()
 
-        self.canvas.draw_matrix(*self.box_0.get_data())
-        self.canvas.draw_matrix(*self.box_1.get_data())
+        self.canvas.draw_layer(*self.box_0.get_data())
+        self.canvas.draw_layer(*self.box_1.get_data())
 
         y, x, _ = self.box_0.get_data()
         self.draw_text('b','r', f"({y}, {x}) {curses.LINES} {curses.COLS}", curses.A_REVERSE)
