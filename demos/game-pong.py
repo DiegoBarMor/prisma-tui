@@ -1,5 +1,4 @@
 import time
-import curses
 import prisma
 import numpy as np
 
@@ -24,6 +23,9 @@ class Actor:
         self.dy = dy
         self.dx = dx
 
+    def get_size_pos(self):
+        return self.h, self.w, self.y, self.x
+
     # --------------------------------------------------------------------------
     def update(self, boundaries):
         ymin, xmin, ymax, xmax = boundaries
@@ -33,15 +35,10 @@ class Actor:
         self.x = round(self._x_float)
 
 
-    def stamp_to_field(self, field: "Field"):
-        pass
-
-    def get_size_pos(self):
-        return self.h, self.w, self.y, self.x
-
-
 # //////////////////////////////////////////////////////////////////////////////
 class Ball(Actor):
+    YSPEED_MULTIPLIER = 2.0
+
     def update(self, boundaries):
         super().update(boundaries)
         ymin, _, ymax, _ = boundaries
@@ -53,14 +50,13 @@ class Ball(Actor):
         pass
 
     def randomize_dy(self):
-        self.dy = (np.random.random()-0.5) * 4
+        self.dy = (np.random.random()-0.5) * self.YSPEED_MULTIPLIER
 
 
 # //////////////////////////////////////////////////////////////////////////////
 class Overlay:
     def __init__(self):
-        self._empty = prisma.Layer(0,0)
-
+        h = 5; w = 5
         chars_3 = [
             "33333",
             "   33",
@@ -82,21 +78,12 @@ class Overlay:
             "   11",
             "   11",
         ]
-        self._number_3 = prisma.Layer(
-            len(chars_3), len(chars_3[0]),
-            chars = chars_3,
-            attrs = [[0 for _ in row] for row in chars_3]
-        )
-        self._number_2 = prisma.Layer(
-            len(chars_2), len(chars_2[0]),
-            chars = chars_2,
-            attrs = [[0 for _ in row] for row in chars_2]
-        )
-        self._number_1 = prisma.Layer(
-            len(chars_1), len(chars_1[0]),
-            chars = chars_1,
-            attrs = [[0 for _ in row] for row in chars_1]
-        )
+        attrs = [[0 for _ in range(w)] for _ in range(h)]
+
+        self._empty = prisma.Layer(0,0)
+        self._number_3 = prisma.Layer(h, w, chars_3, attrs)
+        self._number_2 = prisma.Layer(h, w, chars_2, attrs)
+        self._number_1 = prisma.Layer(h, w, chars_1, attrs)
 
     def display_num(self, n):
         match n:
@@ -135,7 +122,7 @@ class Field:
 
         self._arr = np.zeros((h, w))
         self._char_map = [' ', ' ', '+', '#', '*']
-        self._attr_map = [0, curses.color_pair(2), curses.A_BOLD, curses.A_BOLD, curses.color_pair(2)]
+        self._attr_map = [0, prisma.get_color_pair(2), prisma.A_BOLD, prisma.A_BOLD, prisma.get_color_pair(2)]
 
         self.p0_x = self.PAD_X
         self.p1_x = self.w - (self.PAD_X + self.PAD_W)
@@ -155,10 +142,10 @@ class Field:
 
     def handle_input(self, key):
         match key:
-            case 119 | curses.KEY_UP:
+            case 119 | prisma.KEY_UP:
                 dy = -1
                 self._player0.set_vel(dy,  0)
-            case 115 | curses.KEY_DOWN:
+            case 115 | prisma.KEY_DOWN:
                 dy = 1
                 self._player0.set_vel(dy,  0)
             case -1: pass
@@ -225,7 +212,7 @@ class Field:
             self._ball.dx = -self._ball.dx
             self._ball.update(boundaries_ball) # avoid cliping with pad
 
-        if np.any(arr_ba == self.DANGER_ZONE):
+        elif np.any(arr_ba == self.DANGER_ZONE):
             self._update_score()
             self._next_round()
 
@@ -245,26 +232,27 @@ class Field:
             attrs = [[self._attr_map[int(i)] for i in row] for row in self._arr]
         )
         overlay = self._overlay.display_num(self._overlay_num)
+        y_overlay = (self.h - overlay.h) // 2
+        x_overlay = (self.w - overlay.w) // 2
+        base.draw_layer(
+            y_overlay, x_overlay, overlay, transparency = False
+        )
         return base
-
 
 
 # //////////////////////////////////////////////////////////////////////////////
 class TUI(prisma.Terminal):
     def on_start(self):
-        curses.curs_set(False)
-        curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_CYAN)
-        curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_GREEN)
+        prisma.init_pair(1, prisma.COLOR_BLACK, prisma.COLOR_CYAN)
+        prisma.init_pair(2, prisma.COLOR_BLACK, prisma.COLOR_GREEN)
 
-        self.canvas = self.root.create_child(0.8, 1.0, 0.2, 0)
-        # self.overlay = self.canvas.create_layer()
-        self.first_iter = True
+        self.canvas = self.root.create_child(-3, 1.0, 2, 0)
+        self.field = None
 
     # --------------------------------------------------------------------------
     def on_update(self):
-        if self.first_iter:
+        if self.field is None:
             self.field = Field(*self.canvas.get_size())
-            self.first_iter = False
 
         self.field.handle_input(self.char)
         self.field.update()
@@ -276,12 +264,12 @@ class TUI(prisma.Terminal):
 
         self.draw_text(score_y, 'c', "SCORE")
         self.draw_text(score_y+1, 'c', f"{self.field.score0} : {self.field.score1}")
-        self.draw_text('b','r', f"({curses.LINES} {curses.COLS}", curses.A_REVERSE)
-        self.draw_text('b','l', f"Press F1 to exit (current key: {self.char})", curses.color_pair(1))
+        self.draw_text('b','r', f"({self.h} {self.w}", prisma.A_REVERSE)
+        self.draw_text('b','l', f"Press F1 to exit (current key: {self.char})", prisma.get_color_pair(1))
 
     # --------------------------------------------------------------------------
     def should_stop(self):
-        return self.char == curses.KEY_F1
+        return self.char == prisma.KEY_F1
 
 
 ################################################################################

@@ -1,4 +1,3 @@
-import curses
 import prisma
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -28,30 +27,29 @@ class Box:
         return self.y, self.x, self.layer
 
     # --------------------------------------------------------------------------
-    def move(self):
-        self.y = max(0, min(self.y + self.dy, curses.LINES - self.size))
-        self.x = max(0, min(self.x + self.dx, curses.COLS  - self.size))
+    def move(self, lines, cols):
+        self.y = max(0, min(self.y + self.dy, lines - self.size))
+        self.x = max(0, min(self.x + self.dx, cols  - self.size))
 
 
 # //////////////////////////////////////////////////////////////////////////////
 class BoxAutonomous(Box):
-    def move(self):
-        super().move()
-        if (self.y == 0) or (self.y == curses.LINES - self.size):
+    def move(self, lines, cols):
+        super().move(lines, cols)
+        if (self.y == 0) or (self.y == lines - self.size):
             self.dy = -self.dy
-        if (self.x == 0) or (self.x == curses.COLS  - self.size):
+        if (self.x == 0) or (self.x == cols  - self.size):
             self.dx = -self.dx
 
 
 # //////////////////////////////////////////////////////////////////////////////
 class TUI(prisma.Terminal):
     def on_start(self):
-        curses.curs_set(False)
-        curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_CYAN)
+        prisma.init_pair(1, prisma.COLOR_BLACK, prisma.COLOR_CYAN)
 
         size = 5
-        self.box_0 = Box(size, '#', curses.A_BOLD)
-        self.box_1 = BoxAutonomous(size, '*', curses.A_DIM)
+        self.box_0 = Box(size, '#', prisma.A_BOLD)
+        self.box_1 = BoxAutonomous(size, '*', prisma.A_DIM)
 
         self.box_0.set_pos(self.h // 2, (self.w - size) // 2)
         self.box_1.set_vel(1, 1)
@@ -61,25 +59,25 @@ class TUI(prisma.Terminal):
     # --------------------------------------------------------------------------
     def on_update(self):
         match self.char:
-            case 119 | curses.KEY_UP:    self.box_0.set_vel(-1,  0)
-            case 97  | curses.KEY_LEFT:  self.box_0.set_vel( 0, -1)
-            case 115 | curses.KEY_DOWN:  self.box_0.set_vel( 1,  0)
-            case 100 | curses.KEY_RIGHT: self.box_0.set_vel( 0,  1)
+            case 119 | prisma.KEY_UP:    self.box_0.set_vel(-1,  0)
+            case 97  | prisma.KEY_LEFT:  self.box_0.set_vel( 0, -1)
+            case 115 | prisma.KEY_DOWN:  self.box_0.set_vel( 1,  0)
+            case 100 | prisma.KEY_RIGHT: self.box_0.set_vel( 0,  1)
             case _: self.box_0.set_vel(0, 0)
 
-        self.box_0.move()
-        self.box_1.move()
+        self.box_0.move(self.h, self.w)
+        self.box_1.move(self.h, self.w)
 
         self.canvas.draw_layer(*self.box_0.get_data())
         self.canvas.draw_layer(*self.box_1.get_data())
 
         y, x, _ = self.box_0.get_data()
-        self.draw_text('b','r', f"({y}, {x}) {curses.LINES} {curses.COLS}", curses.A_REVERSE)
-        self.draw_text('b','l', f"Press F1 to exit (current key: {self.char})", curses.color_pair(1))
+        self.draw_text('b','r', f"({y}, {x}) {self.h} {self.w}", prisma.A_REVERSE)
+        self.draw_text('b','l', f"Press F1 to exit (current key: {self.char})", prisma.get_color_pair(1))
 
     # --------------------------------------------------------------------------
     def should_stop(self):
-        return self.char == curses.KEY_F1
+        return self.char == prisma.KEY_F1
 
 
 ################################################################################

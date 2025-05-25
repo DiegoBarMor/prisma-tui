@@ -31,13 +31,13 @@ class Graphics:
         assert len(pairs) <= prisma.MAX_PALETTE_PAIRS, \
             f"Graphics has {len(pairs)} pairs, max is {prisma.MAX_PALETTE_PAIRS}."
 
-        if not prisma.BACKEND.supports_color(): return
+        if not prisma._BACKEND.supports_color(): return
 
         for i,color in enumerate(colors):
-            prisma.BACKEND.init_color(i, *color)
+            prisma._BACKEND.init_color(i, *color)
 
         for i,(fg,bg) in enumerate(pairs):
-            prisma.BACKEND.init_pair(i, fg, bg)
+            prisma._BACKEND.init_pair(i, fg, bg)
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -71,7 +71,7 @@ class Graphics:
             file.read(1) # skip a breakline character
 
             pairs = [[int(file.read(1)[0]) for _ in range(w)] for _ in range(h)]
-            attrs = [[prisma.BACKEND.get_color_pair(i) for i in row] for row in pairs]
+            attrs = [[prisma._BACKEND.get_color_pair(i) for i in row] for row in pairs]
         return prisma.Layer(h, w, chars.split('\n'), attrs)
 
 

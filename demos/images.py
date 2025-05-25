@@ -1,31 +1,29 @@
-import curses
 import prisma
 import numpy as np
 
 # //////////////////////////////////////////////////////////////////////////////
 class TUI(prisma.Terminal):
     def on_start(self):
-        curses.curs_set(False)
         self.graphics.load_palette("demos/data/cat.pal")
-        curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_CYAN)
+        prisma.init_pair(1, prisma.COLOR_BLACK, prisma.COLOR_CYAN)
 
         self.bg0 = self.root.create_layer()
         self.bg1 = self.root.create_layer()
         self.img = self.root.create_layer()
         self.txt = self.root.create_layer()
 
-        shape = (curses.LINES, curses.COLS)
+        shape = prisma.get_size()
         chars_noise_0 = np.full(shape, ' ', dtype = "U1")
         chars_noise_1 = np.full(shape, ' ', dtype = "U1")
-        attrs_noise_0 = np.full(shape, curses.A_NORMAL, dtype = int)
-        attrs_noise_1 = np.full(shape, curses.A_NORMAL, dtype = int)
+        attrs_noise_0 = np.full(shape, prisma.A_NORMAL, dtype = int)
+        attrs_noise_1 = np.full(shape, prisma.A_NORMAL, dtype = int)
 
         noise_0 = np.random.random(shape) < 0.2
         noise_1 = np.random.random(shape) < 0.2
         chars_noise_0[noise_0] = '.'
         chars_noise_1[noise_1] = '`'
-        attrs_noise_0[noise_0] = curses.A_BOLD
-        attrs_noise_1[noise_1] = curses.A_DIM
+        attrs_noise_0[noise_0] = prisma.A_BOLD
+        attrs_noise_1[noise_1] = prisma.A_DIM
 
         self.layer_noise_0 = prisma.Layer(*shape, chars_noise_0, attrs_noise_0)
         self.layer_noise_1 = prisma.Layer(*shape, chars_noise_1, attrs_noise_1)
@@ -37,13 +35,13 @@ class TUI(prisma.Terminal):
         self.bg1.draw_layer(0, 0, self.layer_noise_1.copy())
         self.img.draw_layer('c', 'c', self.layer_cat.copy())
 
-        self.txt.draw_text('b','l', "Press F1 to exit", curses.color_pair(1))
-        self.txt.draw_text('t','r', f"{curses.LINES} {curses.COLS}", curses.A_REVERSE)
+        self.txt.draw_text('b','l', "Press F1 to exit", prisma.get_color_pair(1))
+        self.txt.draw_text('t','r', f"{self.h} {self.w}", prisma.A_REVERSE)
 
 
     # --------------------------------------------------------------------------
     def should_stop(self):
-        return self.char == curses.KEY_F1
+        return self.char == prisma.KEY_F1
 
 
 ################################################################################

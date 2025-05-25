@@ -1,13 +1,10 @@
-import curses
 import prisma
 
 # //////////////////////////////////////////////////////////////////////////////
 class TUI(prisma.Terminal):
-    # --------------------------------------------------------------------------
     def on_start(self):
-        curses.curs_set(False)
-        curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_CYAN)
-        curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_YELLOW)
+        prisma.init_pair(1, prisma.COLOR_BLACK, prisma.COLOR_CYAN)
+        prisma.init_pair(2, prisma.COLOR_BLACK, prisma.COLOR_YELLOW)
 
         self.names = ["canvas", "tpanel", "bpanel", "lpanel", "rpanel"]
 
@@ -28,10 +25,10 @@ class TUI(prisma.Terminal):
     def on_update(self):
         h,w = self.root.get_size()
         match self.char:
-            case curses.KEY_UP:    self.resize_terminal(h-1, w  )
-            case curses.KEY_LEFT:  self.resize_terminal(h  , w-1)
-            case curses.KEY_DOWN:  self.resize_terminal(h+1, w  )
-            case curses.KEY_RIGHT: self.resize_terminal(h  , w+1)
+            case prisma.KEY_UP:    self.resize_terminal(h-1, w  )
+            case prisma.KEY_LEFT:  self.resize_terminal(h  , w-1)
+            case prisma.KEY_DOWN:  self.resize_terminal(h+1, w  )
+            case prisma.KEY_RIGHT: self.resize_terminal(h  , w+1)
 
 
         for name,sect in zip(self.names, self.canvas.iter_children()):
@@ -48,13 +45,13 @@ class TUI(prisma.Terminal):
         for sect in self.canvas.iter_children():
             sect.draw_border()
 
-        self.bpanel.draw_text('t','l', "Resize the screen with the arrow keys", curses.color_pair(1), transparency = 0)
-        self.bpanel.draw_text('t+1','l', "Press F1 to exit", curses.color_pair(1), transparency = 0)
-        self.bpanel.draw_text('t+1','r', f"{curses.LINES} {curses.COLS}", curses.A_REVERSE, transparency = 0)
+        self.bpanel.draw_text('t','l', "Resize the screen with the arrow keys", prisma.get_color_pair(1), transparency = 0)
+        self.bpanel.draw_text('t+1','l', "Press F1 to exit", prisma.get_color_pair(1), transparency = 0)
+        self.bpanel.draw_text('t+1','r', f"{self.h} {self.w}", prisma.A_REVERSE, transparency = 0)
 
     # --------------------------------------------------------------------------
     def should_stop(self):
-        return self.char == curses.KEY_F1
+        return self.char == prisma.KEY_F1
 
 
 ################################################################################

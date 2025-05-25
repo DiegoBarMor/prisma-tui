@@ -3,31 +3,16 @@ from abc import ABC, abstractmethod
 # //////////////////////////////////////////////////////////////////////////////
 class Backend(ABC):
     @abstractmethod
-    def start(self) -> None: pass
-
-    @abstractmethod
-    def end(self) -> None: pass
-
-    @abstractmethod
     def set_nodelay(self, boolean: bool) -> None: pass
+
+    @abstractmethod
+    def sleep(self, ms: int) -> None: pass
 
     @abstractmethod
     def write_text(self, y: int, x: int, chars: str, attr: int = 0) -> None: pass
 
     @abstractmethod
-    def refresh(self) -> None: pass
-
-    @abstractmethod
-    def get_key(self) -> int: pass
-
-    @abstractmethod
     def get_size(self, update = False) -> tuple[int,int]: pass
-
-    @abstractmethod
-    def resize(self, h: int, w: int) -> None: pass
-
-    @abstractmethod
-    def sleep(self, ms: int) -> None: pass
 
     @abstractmethod
     def supports_color(self) -> bool: pass
@@ -41,30 +26,26 @@ class Backend(ABC):
     @abstractmethod
     def get_color_pair(self, i: int) -> int: pass
 
+    @abstractmethod
+    def _start(self) -> None: pass
+
+    @abstractmethod
+    def _end(self) -> None: pass
+
+    @abstractmethod
+    def _refresh(self) -> None: pass
+
+    @abstractmethod
+    def _get_key(self) -> int: pass
+
+    @abstractmethod
+    def _resize(self, h: int, w: int) -> None: pass
+
 
 # //////////////////////////////////////////////////////////////////////////////
 class CursesBackend(Backend):
     def __init__(self):
         self.curses = __import__("curses")
-
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def start(self) -> None:
-        self.stdscr = self.curses.initscr()
-        self.curses.noecho()
-        self.curses.cbreak()
-        self.stdscr.keypad(1)
-
-        try: self.curses.start_color()
-        except: pass
-
-    # --------------------------------------------------------------------------
-    def end(self) -> None:
-        if "stdscr" not in self.__dict__: return
-        self.stdscr.keypad(0)
-        self.curses.echo()
-        self.curses.nocbreak()
-        self.curses.endwin()
-
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def set_nodelay(self, boolean: bool) -> None:
@@ -80,23 +61,9 @@ class CursesBackend(Backend):
         except self.curses.error: pass # ignore out of bounds error
 
     # --------------------------------------------------------------------------
-    def refresh(self) -> None:
-        return # unnecessary, as stdscr.refresh() gets implicitly called by stdscr.getkey()
-
-    # --------------------------------------------------------------------------
-    def get_key(self) -> int:
-        return self.stdscr.getch()
-
-
-    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def get_size(self, update = False) -> tuple[int,int]:
         if update: self.curses.update_lines_cols()
         return self.curses.LINES, self.curses.COLS
-
-    # --------------------------------------------------------------------------
-    def resize(self, h: int, w: int) -> None:
-        try: self.stdscr.resize(h, w)
-        except self.curses.error: pass
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -118,6 +85,40 @@ class CursesBackend(Backend):
     def get_color_pair(self, i: int) -> int:
         try: return self.curses.color_pair(i)
         except self.curses.error: return 0
+
+
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    def _start(self) -> None:
+        self.stdscr = self.curses.initscr()
+        self.curses.noecho()
+        self.curses.cbreak()
+        self.stdscr.keypad(1)
+        self.curses.curs_set(False)
+
+        try: self.curses.start_color()
+        except: pass
+
+    # --------------------------------------------------------------------------
+    def _end(self) -> None:
+        if "stdscr" not in self.__dict__: return
+        self.stdscr.keypad(0)
+        self.curses.echo()
+        self.curses.nocbreak()
+        self.curses.endwin()
+
+
+    # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    def _refresh(self) -> None:
+        return # unnecessary, as stdscr.refresh() gets implicitly called by stdscr.getkey()
+
+    # --------------------------------------------------------------------------
+    def _get_key(self) -> int:
+        return self.stdscr.getch()
+
+    # --------------------------------------------------------------------------
+    def _resize(self, h: int, w: int) -> None:
+        try: self.stdscr.resize(h, w)
+        except self.curses.error: pass
 
 
 # //////////////////////////////////////////////////////////////////////////////

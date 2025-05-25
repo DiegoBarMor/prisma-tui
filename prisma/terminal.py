@@ -19,14 +19,14 @@ class Terminal:
     def run(self, fps: int = 0) -> None:
         self.set_fps(fps)
         try:
-            prisma.BACKEND.start()
+            prisma._BACKEND._start()
             self._on_start()
             while self._running:
                 self._on_resize()
                 self._on_update()
             self._on_end()
         finally:
-            prisma.BACKEND.end()
+            prisma._BACKEND._end()
 
     # --------------------------------------------------------------------------
     def stop(self) -> None:
@@ -42,7 +42,11 @@ class Terminal:
         else:
             self._no_delay = True
             self._nap_ms = int(1000 / fps)
-            self._wait = lambda: prisma.BACKEND.sleep(self._nap_ms)
+            self._wait = lambda: prisma._BACKEND.sleep(self._nap_ms)
+
+    # --------------------------------------------------------------------------
+    def get_size(self) -> tuple[int, int]:
+        return self.h, self.w
 
     # --------------------------------------------------------------------------
     def resize_terminal(self, h: int, w: int) -> None:
@@ -86,19 +90,20 @@ class Terminal:
     def _on_start(self) -> None:
         self.root = prisma.Section()
         self.graphics = prisma.Graphics()
+        prisma._BACKEND.set_nodelay(self._no_delay)
+
         self._running = True
-        prisma.BACKEND.set_nodelay(self._no_delay)
         self.on_start()
 
     # --------------------------------------------------------------------------
     def _on_resize(self) -> None:
-        h,w = prisma.BACKEND.get_size(update = True)
+        h,w = prisma._BACKEND.get_size(update = True)
 
         if (self.h == h) and (self.w == w): return
 
         self.h = h; self.w = w
         self.root.update_size()
-        prisma.BACKEND.resize(self.h, self.w)
+        prisma._BACKEND._resize(self.h, self.w)
         self.on_resize()
 
     # --------------------------------------------------------------------------
@@ -107,7 +112,7 @@ class Terminal:
         self.on_update()
         self._render()
 
-        self.char = prisma.BACKEND.get_key()
+        self.char = prisma._BACKEND._get_key()
         if self.should_stop(): self.stop()
         self._wait()
 
@@ -124,10 +129,10 @@ class Terminal:
         idx = 0
         for chars,attr in master_layer.yield_render_data():
             y,x = divmod(idx, self.w)
-            prisma.BACKEND.write_text(y, x, chars, attr)
+            prisma._BACKEND.write_text(y, x, chars, attr)
             idx += len(chars)
 
-        prisma.BACKEND.refresh()
+        prisma._BACKEND._refresh()
 
 
 # //////////////////////////////////////////////////////////////////////////////

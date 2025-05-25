@@ -1,25 +1,19 @@
-import curses
 import prisma
-
-# prisma.BLANK_CHAR = "*"
 
 # //////////////////////////////////////////////////////////////////////////////
 class TUI(prisma.Terminal):
     def on_start(self):
-        curses.curs_set(False)
-        curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_CYAN)
+        prisma.init_pair(1, prisma.COLOR_BLACK, prisma.COLOR_CYAN)
 
     # --------------------------------------------------------------------------
     def on_update(self):
-        self.draw_text('c','c', f"{curses.LINES} lines, {curses.COLS} cols", curses.A_REVERSE)
-        self.draw_text("c+1",'c', f"Key pressed: {self.char}", curses.A_BOLD)
-        self.draw_text('b','l', "Press F1 to exit", curses.color_pair(1))
-
-
+        self.draw_text('c','c', f"{self.h} lines, {self.w} cols", prisma.A_REVERSE)
+        self.draw_text("c+1",'c', f"Key pressed: {self.char}", prisma.A_BOLD)
+        self.draw_text('b','l', "Press F1 to exit", prisma.get_color_pair(1))
 
     # --------------------------------------------------------------------------
     def should_stop(self):
-        return self.char == curses.KEY_F1
+        return self.char == prisma.KEY_F1
 
 
 ################################################################################

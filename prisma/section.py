@@ -120,7 +120,7 @@ class Section:
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _update_dimensions(self) -> None:
         if self._parent is None: # root section
-            self.h, self.w = prisma.BACKEND.get_size()
+            self.h, self.w = prisma._BACKEND.get_size()
             self.y, self.x = 0, 0
             return
 
