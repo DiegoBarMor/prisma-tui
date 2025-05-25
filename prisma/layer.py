@@ -5,6 +5,7 @@ from enum import Enum, auto
 class BlendMode(Enum):
     OVERLAY = auto()
     OVERWRITE = auto()
+    MERGE_ATTR = auto()
 
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -164,8 +165,9 @@ class Layer:
         if not len(data): return
 
         match blend:
-            case BlendMode.OVERLAY: func = prisma.Pixel.overlay
-            case BlendMode.OVERWRITE: func = prisma.Pixel.overwrite
+            case BlendMode.OVERLAY:    func = prisma.Pixel.overlay
+            case BlendMode.OVERWRITE:  func = prisma.Pixel.overwrite
+            case BlendMode.MERGE_ATTR: func = prisma.Pixel.merge_attr
             case _ : raise ValueError(f"Unknown blend_mode: {blend}")
 
         h = len(data)
