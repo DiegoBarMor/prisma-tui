@@ -1,14 +1,21 @@
 import prisma
+from enum import Enum, auto
+
+# //////////////////////////////////////////////////////////////////////////////
+class BlendMode(Enum):
+    OVERLAY = auto()
+    OVERWRITE = auto()
+
 
 # //////////////////////////////////////////////////////////////////////////////
 class Layer:
-    def __init__(self, h, w, chars: list[str] = None, attrs: list[list[int]] = None):
+    def __init__(self, h, w, chars: list[str] = None, attrs: list[list[int]] = None, blend = BlendMode.OVERLAY):
         if chars is None: chars = ((prisma.BLANK_CHAR for _ in range(w)) for _ in range(h))
         if attrs is None: attrs = ((prisma.BLANK_ATTR for _ in range(w)) for _ in range(h))
         self.h = h
         self.w = w
         self._data: list[list[prisma.Pixel]] = self.get_pixel_mat(chars, attrs)
-        self._transparency = True
+        self.blend_mode = blend
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -31,10 +38,6 @@ class Layer:
         self.w = w
 
     # --------------------------------------------------------------------------
-    def set_transparency(self, transparency: bool) -> None:
-        self._transparency = transparency
-
-    # --------------------------------------------------------------------------
     def get_chars(self):
         return [[pixel._char for pixel in row] for row in self._data]
 
@@ -44,7 +47,7 @@ class Layer:
 
     # --------------------------------------------------------------------------
     def copy(self):
-        return Layer(self.h, self.w, self.get_chars(), self.get_attrs())
+        return Layer(self.h, self.w, self.get_chars(), self.get_attrs(), self.blend_mode)
 
     # --------------------------------------------------------------------------
     def clear(self):
@@ -52,17 +55,17 @@ class Layer:
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def draw_layer(self, y, x, layer: "Layer", transparency = True):
+    def draw_layer(self, y, x, layer: "Layer"):
         # rename to "merge_layer"?
         h = min(layer.h, self.h)
         w = min(layer.w, self.w)
         layer = layer.copy()
         layer.set_size(h, w)
         y, x = self._parse_coords(h, w, y, x)
-        self._stamp(y, x, layer._data, transparency)
+        self._stamp(y, x, layer._data, layer.blend_mode)
 
     # --------------------------------------------------------------------------
-    def draw_text(self, y, x, string, attr = None, transparency = True, cut: dict[str, str] = {}):
+    def draw_text(self, y, x, string, attr = None, blend = BlendMode.OVERLAY, cut: dict[str, str] = {}):
         if attr is None: attr = prisma.BLANK_ATTR
 
         rows = str(string).split('\n')
@@ -76,13 +79,13 @@ class Layer:
         chars = self._parse_cut(y, x, cut, chars)
         attrs = [[attr for _ in row] for row in chars]
         data = self.get_pixel_mat(chars, attrs)
-        self._stamp(y, x, data, transparency)
+        self._stamp(y, x, data, blend)
 
     # --------------------------------------------------------------------------
     def draw_border(self,
         ls = '│', rs = '│', ts = '─', bs = '─',
         tl = '┌', tr = '┐', bl = '└', br = '┘',
-        attr = None, transparency = True
+        attr = None, blend = BlendMode.OVERLAY
     ):
         if attr is None: attr = prisma.BLANK_ATTR
 
@@ -100,7 +103,7 @@ class Layer:
                 [[attr] + [ BA ]*w + [attr]]*h +\
                 [[attr] + [attr]*w + [attr]]
         )
-        self._stamp(0, 0, data, transparency)
+        self._stamp(0, 0, data, blend)
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -156,11 +159,14 @@ class Layer:
 
 
     # --------------------------------------------------------------------------
-    def _stamp(self, y, x, data, transparency):
+    def _stamp(self, y, x, data, blend = BlendMode.OVERLAY):
         if (y >= self.h) or (x >= self.w): return
         if not len(data): return
 
-        func = prisma.Pixel.overlay if transparency else prisma.Pixel.overwrite
+        match blend:
+            case BlendMode.OVERLAY: func = prisma.Pixel.overlay
+            case BlendMode.OVERWRITE: func = prisma.Pixel.overwrite
+            case _ : raise ValueError(f"Unknown blend_mode: {blend}")
 
         h = len(data)
         w = len(data[0])

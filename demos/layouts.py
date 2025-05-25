@@ -45,9 +45,9 @@ class TUI(prisma.Terminal):
         for sect in self.canvas.iter_children():
             sect.draw_border()
 
-        self.bpanel.draw_text('t','l', "Resize the screen with the arrow keys", prisma.get_color_pair(1), transparency = 0)
-        self.bpanel.draw_text('t+1','l', "Press F1 to exit", prisma.get_color_pair(1), transparency = 0)
-        self.bpanel.draw_text('t+1','r', f"{self.h} {self.w}", prisma.A_REVERSE, transparency = 0)
+        self.bpanel.draw_text('t','l', "Resize the screen with the arrow keys", prisma.get_color_pair(1), prisma.BlendMode.OVERWRITE)
+        self.bpanel.draw_text('t+1','l', "Press F1 to exit", prisma.get_color_pair(1), prisma.BlendMode.OVERWRITE)
+        self.bpanel.draw_text('t+1','r', f"{self.h} {self.w}", prisma.A_REVERSE, prisma.BlendMode.OVERWRITE)
 
     # --------------------------------------------------------------------------
     def should_stop(self):

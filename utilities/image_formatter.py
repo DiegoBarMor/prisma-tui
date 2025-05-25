@@ -4,7 +4,6 @@ from PIL import Image
 from pathlib import Path
 from collections import Counter
 
-
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 def open_img(path_img: Path) -> np.array:
     img = Image.open(path_img).convert("RGBA")

@@ -11,7 +11,7 @@ ALPHA_THRESHOLD = 128
 # --------------------------------------------------------------------------
 from .constants import *
 from .graphics import Graphics
-from .layer import Layer
+from .layer import Layer, BlendMode
 from .pixel import Pixel
 from .section import Section
 from .terminal import Terminal

@@ -81,9 +81,9 @@ class Overlay:
         attrs = [[0 for _ in range(w)] for _ in range(h)]
 
         self._empty = prisma.Layer(0,0)
-        self._number_3 = prisma.Layer(h, w, chars_3, attrs)
-        self._number_2 = prisma.Layer(h, w, chars_2, attrs)
-        self._number_1 = prisma.Layer(h, w, chars_1, attrs)
+        self._number_3 = prisma.Layer(h, w, chars_3, attrs, prisma.BlendMode.OVERWRITE)
+        self._number_2 = prisma.Layer(h, w, chars_2, attrs, prisma.BlendMode.OVERWRITE)
+        self._number_1 = prisma.Layer(h, w, chars_1, attrs, prisma.BlendMode.OVERWRITE)
 
     def display_num(self, n):
         match n:
@@ -231,12 +231,10 @@ class Field:
             chars = [[self._char_map[int(i)] for i in row] for row in self._arr],
             attrs = [[self._attr_map[int(i)] for i in row] for row in self._arr]
         )
-        overlay = self._overlay.display_num(self._overlay_num)
-        y_overlay = (self.h - overlay.h) // 2
-        x_overlay = (self.w - overlay.w) // 2
-        base.draw_layer(
-            y_overlay, x_overlay, overlay, transparency = False
-        )
+        layer = self._overlay.display_num(self._overlay_num)
+        y_overlay = (self.h - layer.h) // 2
+        x_overlay = (self.w - layer.w) // 2
+        base.draw_layer(y_overlay, x_overlay, layer)
         return base
 
 

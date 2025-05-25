@@ -88,7 +88,7 @@ class Section:
     # --------------------------------------------------------------------------
     def aggregate_layers(self, agg_layer: prisma.Layer) -> Generator[tuple[int, int, "prisma.Layer"], None, None]:
         for layer in self.iter_layers():
-            agg_layer.draw_layer(self.y, self.x, layer, layer._transparency)
+            agg_layer.draw_layer(self.y, self.x, layer)
 
         for child in self.iter_children():
             child.aggregate_layers(agg_layer)
