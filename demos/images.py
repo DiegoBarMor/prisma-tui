@@ -41,7 +41,7 @@ class TUI(prisma.Terminal):
 
     # --------------------------------------------------------------------------
     def should_stop(self):
-        return self.char == prisma.KEY_F1
+        return self.key == prisma.KEY_F1
 
 
 ################################################################################

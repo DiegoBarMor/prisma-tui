@@ -24,7 +24,7 @@ class TUI(prisma.Terminal):
     # --------------------------------------------------------------------------
     def on_update(self):
         h,w = self.root.get_size()
-        match self.char:
+        match self.key:
             case prisma.KEY_UP:    self.resize_terminal(h-1, w  )
             case prisma.KEY_LEFT:  self.resize_terminal(h  , w-1)
             case prisma.KEY_DOWN:  self.resize_terminal(h+1, w  )
@@ -51,7 +51,7 @@ class TUI(prisma.Terminal):
 
     # --------------------------------------------------------------------------
     def should_stop(self):
-        return self.char == prisma.KEY_F1
+        return self.key == prisma.KEY_F1
 
 
 ################################################################################

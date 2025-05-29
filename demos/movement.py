@@ -58,7 +58,7 @@ class TUI(prisma.Terminal):
 
     # --------------------------------------------------------------------------
     def on_update(self):
-        match self.char:
+        match self.key:
             case 119 | prisma.KEY_UP:    self.box_0.set_vel(-1,  0)
             case 97  | prisma.KEY_LEFT:  self.box_0.set_vel( 0, -1)
             case 115 | prisma.KEY_DOWN:  self.box_0.set_vel( 1,  0)
@@ -78,7 +78,7 @@ class TUI(prisma.Terminal):
 
     # --------------------------------------------------------------------------
     def should_stop(self):
-        return self.char == prisma.KEY_F1
+        return self.key == prisma.KEY_F1
 
 
 ################################################################################

@@ -29,7 +29,7 @@ class Layer:
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     @classmethod
-    def get_pixel_mat(cls, chars: list[str], attrs: list[list[int]]) -> list[list[prisma.Pixel]]:
+    def get_pixel_mat(cls, chars: list[str], attrs: list[list[int]]) -> list[list["prisma.Pixel"]]:
         """Create a pixel matrix from a matrix of characters and a matrix of attributes."""
         return [
             [prisma.Pixel(c,a) for c,a in zip(row_chars, row_attrs)]
@@ -88,7 +88,7 @@ class Layer:
     def draw_text(self,
         y: int | str,  # Can be an integer or a string indicating position (e.g., 'T', 'C', 'B')
         x: int | str,  # Can be an integer or a string indicating position (e.g., 'L', 'C', 'R')
-        string: str | any, # Accepts any object that can be converted to a string
+        string, # Accepts any object that can be converted to a string
         attr: int = None,
         blend = BlendMode.OVERLAY,
         cut: dict[str, str] = {} # Cut dictionary to specify which edges to cut (e.g., {'T': 1, 'B': 2})
@@ -225,7 +225,7 @@ class Layer:
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def _create_row(self, length: int) -> list[prisma.Pixel]:
+    def _create_row(self, length: int) -> list["prisma.Pixel"]:
         """Create a row of pixels with the specified length, initialized to blank."""
         return [prisma.Pixel() for _ in range(length)]
 

@@ -5,7 +5,7 @@ class Terminal:
     def __init__(self):
         self.h: int = 0
         self.w: int = 0
-        self.char: int = -1
+        self.key: int = -1
         self.root: prisma.Section
         self.graphics: prisma.Graphics
 
@@ -31,6 +31,20 @@ class Terminal:
     # --------------------------------------------------------------------------
     def stop(self) -> None:
         self._running = False
+
+    # --------------------------------------------------------------------------
+    def fetch_key(self) -> int:
+        self.key = prisma._BACKEND._get_key()
+        return self.key
+
+    # --------------------------------------------------------------------------
+    def exhaust_keys(self) -> None:
+        """
+        Attention: calling to fetch_key()->prisma._BACKEND._get_key() internally rellies on stdscr.getch(),
+        so this method will block the terminal when fps=0 (i.e. outside no-delay mode).
+        """
+        while self.fetch_key() != -1:
+            pass
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -112,7 +126,7 @@ class Terminal:
         self.on_update()
         self._render()
 
-        self.char = prisma._BACKEND._get_key()
+        self.key = prisma._BACKEND._get_key()
         if self.should_stop(): self.stop()
         self._wait()
 

@@ -5,3 +5,5 @@ logs/
 temp/
 build/
 *egg-info/
+build.sh
+debug.sh
