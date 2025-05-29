@@ -1,27 +1,36 @@
 import prisma
 from enum import Enum, auto
+from typing import Generator
 
 # //////////////////////////////////////////////////////////////////////////////
 class BlendMode(Enum):
-    OVERLAY = auto()
-    OVERWRITE = auto()
-    MERGE_ATTR = auto()
+    """Enum for layer blending modes. Defines how layers are blended when drawn."""
+    OVERLAY = auto() # Default blending mode, overlays the layer on top of the existing pixels.
+    OVERWRITE = auto() # Overwrites the existing pixels with the new layer's pixels.
+    MERGE_ATTR = auto() # Merges the attributes of the new layer with the existing pixels, preserving the characters.
 
 
 # //////////////////////////////////////////////////////////////////////////////
 class Layer:
-    def __init__(self, h, w, chars: list[str] = None, attrs: list[list[int]] = None, blend = BlendMode.OVERLAY):
+    """Layer class for managing pixel data in a 2D grid."""
+    def __init__(self,
+        h: int, w: int,
+        chars: list[str] = None,
+        attrs: list[list[int]] = None,
+        blend = BlendMode.OVERLAY
+    ):
         if chars is None: chars = ((prisma.BLANK_CHAR for _ in range(w)) for _ in range(h))
         if attrs is None: attrs = ((prisma.BLANK_ATTR for _ in range(w)) for _ in range(h))
-        self.h = h
-        self.w = w
+        self.h: int = h
+        self.w: int = w
         self._data: list[list[prisma.Pixel]] = self.get_pixel_mat(chars, attrs)
-        self.blend_mode = blend
+        self.blend_mode: BlendMode = blend
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     @classmethod
-    def get_pixel_mat(cls, chars, attrs):
+    def get_pixel_mat(cls, chars: list[str], attrs: list[list[int]]) -> list[list[prisma.Pixel]]:
+        """Create a pixel matrix from a matrix of characters and a matrix of attributes."""
         return [
             [prisma.Pixel(c,a) for c,a in zip(row_chars, row_attrs)]
             for row_chars, row_attrs in zip(chars, attrs)
@@ -29,7 +38,8 @@ class Layer:
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def set_size(self, h, w):
+    def set_size(self, h: int, w: int) -> None:
+        """Set the size of the layer, adjusting the pixel matrix accordingly."""
         if   h < self.h: self._remove_rows(h)
         elif h > self.h: self._add_rows(h - self.h)
         self.h = h
@@ -39,25 +49,34 @@ class Layer:
         self.w = w
 
     # --------------------------------------------------------------------------
-    def get_chars(self):
+    def get_chars(self) -> list[list[str]]:
+        """Get the characters of the layer as a 2D list of chars."""
         return [[pixel._char for pixel in row] for row in self._data]
 
     # --------------------------------------------------------------------------
-    def get_attrs(self):
+    def get_chars_row_as_strs(self) -> list[str]:
+        """Get the characters of the layer as a list of strings, one for each row."""
+        return [''.join(pixel._char for pixel in row) for row in self._data]
+
+    # --------------------------------------------------------------------------
+    def get_attrs(self) -> list[list[int]]:
+        """Get the attributes of the layer as a 2D list of ints."""
         return [[pixel._attr for pixel in row] for row in self._data]
 
     # --------------------------------------------------------------------------
-    def copy(self):
+    def copy(self) -> "Layer":
+        """Create a copy of the layer."""
         return Layer(self.h, self.w, self.get_chars(), self.get_attrs(), self.blend_mode)
 
     # --------------------------------------------------------------------------
-    def clear(self):
+    def clear(self) -> None:
+        """Clear the layer, resetting all pixels to blank."""
         self._data = [self._create_row(self.w) for _ in range(self.h)]
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def draw_layer(self, y, x, layer: "Layer"):
-        # rename to "merge_layer"?
+    def draw_layer(self, y: int | str, x: int | str, layer: "Layer") -> None:
+        """Draw another layer onto this layer at the specified coordinates."""
         h = min(layer.h, self.h)
         w = min(layer.w, self.w)
         layer = layer.copy()
@@ -66,7 +85,15 @@ class Layer:
         self._stamp(y, x, layer._data, layer.blend_mode)
 
     # --------------------------------------------------------------------------
-    def draw_text(self, y, x, string, attr = None, blend = BlendMode.OVERLAY, cut: dict[str, str] = {}):
+    def draw_text(self,
+        y: int | str,  # Can be an integer or a string indicating position (e.g., 'T', 'C', 'B')
+        x: int | str,  # Can be an integer or a string indicating position (e.g., 'L', 'C', 'R')
+        string: str | any, # Accepts any object that can be converted to a string
+        attr: int = None,
+        blend = BlendMode.OVERLAY,
+        cut: dict[str, str] = {} # Cut dictionary to specify which edges to cut (e.g., {'T': 1, 'B': 2})
+    ) -> None:
+        """Draw a string at the specified coordinates with optional attributes and blending mode."""
         if attr is None: attr = prisma.BLANK_ATTR
 
         rows = str(string).split('\n')
@@ -87,7 +114,8 @@ class Layer:
         ls = '│', rs = '│', ts = '─', bs = '─',
         tl = '┌', tr = '┐', bl = '└', br = '┘',
         attr = None, blend = BlendMode.OVERLAY
-    ):
+    ) -> None:
+        """Draw a border around the layer with specified characters and attribute."""
         if attr is None: attr = prisma.BLANK_ATTR
 
         h = self.h - 2
@@ -96,11 +124,11 @@ class Layer:
         BA = prisma.BLANK_ATTR
         data = self.get_pixel_mat(
             chars = \
-                [tl + ts*w + tr] +\
+                [tl + ts*w + tr]   +\
                 [ls + BC*w + rs]*h +\
                 [bl + bs*w + br],
             attrs = \
-                [[attr] + [attr]*w + [attr]] +\
+                [[attr] + [attr]*w + [attr]]   +\
                 [[attr] + [ BA ]*w + [attr]]*h +\
                 [[attr] + [attr]*w + [attr]]
         )
@@ -108,7 +136,8 @@ class Layer:
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def yield_render_data(self):
+    def yield_render_data(self) -> Generator[tuple[str, int], None, None]:
+        """Yield characters and their attributes ready for rendering."""
         flat_chars = ''.join(''.join(pixel._char for pixel in row) for row in self._data)
         flat_attrs = [pixel._attr for row in self._data for pixel in row]
 
@@ -123,7 +152,8 @@ class Layer:
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def _parse_coords(self, h, w, y, x):
+    def _parse_coords(self, h: int, w: int, y: int | str, x : int | str) -> tuple[int, int]:
+        """Parse the coordinates for drawing, allowing for string-based positioning."""
         if isinstance(y, str):
             match y[0].upper():
                 case 'T': yval = 0
@@ -148,19 +178,25 @@ class Layer:
 
 
     # --------------------------------------------------------------------------
-    def _parse_cut(self, y, x, cut, data):
+    def _parse_cut(self, y: int, x: int, cut: dict[str, str], chars: list[str]) -> list[str]:
+        """Parse a cut dictionary to adjust the characters matrix."""
         for k,v in cut.items():
             match k.upper():
-                case 'T': data = data[v:]
-                case 'B': data = data[:self.h-y-v]
-                case 'L': data = tuple(map(lambda row: row[v:], data))
-                case 'R': data = tuple(map(lambda row: row[:self.w-x-v], data))
+                case 'T': chars = chars[v:]
+                case 'B': chars = chars[:self.h-y-v]
+                case 'L': chars = tuple(map(lambda row: row[v:], chars))
+                case 'R': chars = tuple(map(lambda row: row[:self.w-x-v], chars))
                 case  _ : raise ValueError(f"Invalid cut key: '{k}'")
-        return data
+        return chars
 
 
     # --------------------------------------------------------------------------
-    def _stamp(self, y, x, data, blend = BlendMode.OVERLAY):
+    def _stamp(self,
+        y: int, x: int,
+        data: list[list["prisma.Pixel"]],
+        blend = BlendMode.OVERLAY
+    ) -> None:
+        """Stamp a matrix of pixels onto the layer at the specified coordinates."""
         if (y >= self.h) or (x >= self.w): return
         if not len(data): return
 
@@ -189,23 +225,28 @@ class Layer:
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def _create_row(self, length):
+    def _create_row(self, length: int) -> list[prisma.Pixel]:
+        """Create a row of pixels with the specified length, initialized to blank."""
         return [prisma.Pixel() for _ in range(length)]
 
     # --------------------------------------------------------------------------
-    def _add_rows(self, n):
+    def _add_rows(self, n: int) -> None:
+        """Add 'n' rows to the layer, initializing them with blank pixels."""
         self._data += [self._create_row(self.w) for _ in range(n)]
 
     # --------------------------------------------------------------------------
-    def _add_cols(self, n):
+    def _add_cols(self, n: int) -> None:
+        """Add 'n' columns to each row in the layer, initializing them with blank pixels."""
         self._data = [row + self._create_row(n) for row in self._data]
 
     # --------------------------------------------------------------------------
-    def _remove_rows(self, n):
+    def _remove_rows(self, n: int) -> None:
+        """Remove rows after the first 'n' rows."""
         self._data = self._data[:n]
 
     # --------------------------------------------------------------------------
-    def _remove_cols(self, n):
+    def _remove_cols(self, n: int) -> None:
+        """Remove columns after the first 'n' columns."""
         self._data = [row[:n] for row in self._data]
 
 

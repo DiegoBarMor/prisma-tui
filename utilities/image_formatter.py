@@ -104,8 +104,8 @@ if __name__ == "__main__":
     chars = [''.join(row) for row in chars]
 
     prisma.Graphics.save_layer(
-        path_img.with_suffix(".pri"),
-        chars = chars, pairs = arr
+        path_pri = path_img.with_suffix(".pri"),
+        layer = prisma.Layer(0, 0, chars = chars, attrs = arr)
     )
 
 

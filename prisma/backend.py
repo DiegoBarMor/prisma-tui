@@ -2,6 +2,11 @@ from abc import ABC, abstractmethod
 
 # //////////////////////////////////////////////////////////////////////////////
 class Backend(ABC):
+    """Abstract base class for terminal backends.
+    This class defines the interface for terminal operations, such as writing text,
+    handling colors, and managing terminal size and key input.
+    Subclasses must implement these methods to provide specific terminal functionality."""
+
     @abstractmethod
     def set_nodelay(self, boolean: bool) -> None:
         """Set the nodelay mode for the backend. When enabled, get_key() will not block the terminal."""

@@ -1,20 +1,19 @@
 import prisma
-from typing import Generator
 
 # //////////////////////////////////////////////////////////////////////////////
 class Section:
     def __init__(self):
-        self._parent = None
+        self._parent: "Section" = None
 
         self.h: int; self.w: int
         self.y: int; self.x: int
-        self.hrel: int = 1.0
-        self.wrel: int = 1.0
-        self.yrel: int = 0
-        self.xrel: int = 0
+        self.hrel: int|float = 1.0
+        self.wrel: int|float = 1.0
+        self.yrel: int|float = 0
+        self.xrel: int|float = 0
         self._update_dimensions()
 
-        self._children: list[Section] = []
+        self._children: list["Section"] = []
         self._layers = [prisma.Layer(self.h, self.w)]
 
 
@@ -86,7 +85,7 @@ class Section:
             child.clear()
 
     # --------------------------------------------------------------------------
-    def aggregate_layers(self, agg_layer: prisma.Layer) -> Generator[tuple[int, int, "prisma.Layer"], None, None]:
+    def aggregate_layers(self, agg_layer: prisma.Layer) -> None:
         for layer in self.iter_layers():
             agg_layer.draw_layer(self.y, self.x, layer)
 

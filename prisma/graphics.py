@@ -2,25 +2,31 @@ import prisma
 
 # //////////////////////////////////////////////////////////////////////////////
 class Graphics:
+    """Graphics class to manage palette and PRI files."""
     def __init__(self):
         self.palette: dict = {"colors": [], "pairs":  []}
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def set_colors(self, colors) -> None:
+        """Update the color palette with a list of (r,g,b) colors.
+        RBG values should be in the range 0-1000."""
         self.palette["colors"] = [[int(c) for c in color] for color in colors]
 
     # --------------------------------------------------------------------------
     def set_pairs(self, pairs) -> None:
+        """Update the color pairs with a list of (fg, bg) pairs."""
         self.palette["pairs"] = [[int(p) for p in pair] for pair in pairs]
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def save_palette(self, path_pal: str) -> None:
+        """Save the current palette to a JSON file."""
         prisma.utils.write_json(path_pal, self.palette)
 
     # --------------------------------------------------------------------------
     def load_palette(self, path_pal: str) -> None:
+        """Load a palette from a JSON file."""
         self.palette = prisma.utils.load_json(path_pal)
         colors = self.palette["colors"]
         pairs  = self.palette["pairs"]
@@ -42,7 +48,11 @@ class Graphics:
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     @classmethod
-    def save_layer(cls, path_pri: str, chars: list[str], pairs: list[list[int]]) -> None:
+    def save_layer(cls, path_pri: str, layer: "prisma.Layer") -> None:
+        """Save a layer to a PRI file"""
+        chars: list[str] = layer.get_chars_row_as_strs()
+        pairs: list[list[int]] = layer.get_attrs()
+
         h = len(chars)
         w = len(chars[0]) if h > 0 else 0
 
@@ -61,6 +71,7 @@ class Graphics:
     # --------------------------------------------------------------------------
     @classmethod
     def load_layer(cls, path_pri: str) -> "prisma.Layer":
+        """Load a layer from a PRI file."""
         with open(path_pri, "rb") as file:
             h = int.from_bytes(file.read(2), byteorder="little")
             w = int.from_bytes(file.read(2), byteorder="little")
