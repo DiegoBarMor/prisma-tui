@@ -21,6 +21,7 @@ class Actor:
         self.y = self._y_float = y
         self.x = self._x_float = x
 
+
     def set_vel(self, dy, dx):
         self.dy = dy
         self.dx = dx
@@ -66,24 +67,32 @@ class Ball(Actor):
 
 
 class Pad(Actor):
+    PAD_DY = 1 # 1
     def update(self, boundaries, ball):
         super().update(boundaries)
+
+    def random_set_mistake(self, chance: float):
+        self.do_mistake = np.random.random() < chance
 
 
 class PC(Pad):
     def handle_input(self, key):
         match key:
             case 119 | prisma.KEY_UP:
-                dy = -1
+                dy = -self.PAD_DY
                 self.set_vel(dy,  0)
             case 115 | prisma.KEY_DOWN:
-                dy = 1
+                dy = self.PAD_DY
                 self.set_vel(dy,  0)
             case -1: pass
             case _: self.set_vel(0,  0)
 
 class NPC(Pad):
     # MAX_MISCALCUL = 1
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, **kwds)
+        self.do_mistake = False
+
     def update(self, boundaries, ball):
         self.ai(ball)
         super().update(boundaries, ball)
@@ -92,14 +101,20 @@ class NPC(Pad):
         # miscalculation = np.random.randint(self.MAX_MISCALCUL + 1)
         return
 
+    def adjust_dy(self, criteria: float):
+        """update dy with a manually implementated np.sign"""
+        if   criteria > 0: self.dy =  self.PAD_DY
+        elif criteria < 0: self.dy = -self.PAD_DY
+        else: self.dy = 0.0
+
 
 class NPCNaiveAI(NPC):
     """
     NPC that naively moves towards the current position of the ball. It will naturally fail if the ball is moving fast enough.
     """
     def ai(self, ball):
-        diff_y = ball.y - self.y
-        self.dy = np.sign(diff_y)
+        current_y = self._y_float + self.h//2
+        self.adjust_dy(ball.y - current_y)
 
 class NPCPredictiveAI(NPC):
     """
@@ -108,7 +123,6 @@ class NPCPredictiveAI(NPC):
     def __init__(self, *args, **kwds):
         super().__init__(*args, **kwds)
         self.last_ball_x = 0
-        self.debug = []
 
     def ai(self, ball):
         def r(n): return None if n is None else round(n,2)
@@ -121,21 +135,14 @@ class NPCPredictiveAI(NPC):
 
         last_dist_x = abs(x1 - self.last_ball_x)
         dist_x = abs(x1 - x0)
-        self.last_ball_x = ball.x
-
-        self.debug.clear()
+        self.last_ball_x = ball._x_float
 
 
         if dist_x > last_dist_x or not ball.in_motion:
             ### either ball going away, it's the other player's turn
             ### or countdown is in progress, so pad goes back to starting position
-            y1 = (2 + ymax - self.h) // 2 # add 2 to account for borders
-            self.dy = np.sign(y1 - self.y)
-            steps = None
-            y1_overshoot = None
-            bounces = None
-            # diff_y = y1 - self._y_float
-            # self.dy = np.sign(round(diff_y))
+            y1 = round((ymax - self.h) / 2)
+            self.adjust_dy(y1 - self.y)
             return
 
         if ball.dy < 0:
@@ -146,11 +153,9 @@ class NPCPredictiveAI(NPC):
 
         steps = dist_x // abs(ball.dx)
         y1_overshoot = y0 + steps * (abs(ball.dy))
-        # y1_overshoot = y0 + steps * abs(ball.dy)
 
         bounces = int(abs(y1_overshoot) // ymax)
-        # y1 = y1_overshoot - bounces*(ymax - ball.h) # -2 to account for border?
-        y1 = y1_overshoot - bounces*ymax
+        y1 = y1_overshoot - bounces*(ymax-ball.h//2)
 
         if ball.dy < 0: # revert the mirroring of y from above
             y1 = ymax - y1
@@ -158,17 +163,9 @@ class NPCPredictiveAI(NPC):
         if bounces % 2: # must mirror y when there is an odd number of bounces
             y1 = ymax - y1
 
-        self.dy = np.sign(round(y1 - self._y_float))
+        current_y = self._y_float + self.h//2
+        self.adjust_dy(round(y1 - current_y))
 
-        self.debug.extend([
-            r(ball.y),
-            r(self.y),
-            r(y1),
-            r(y1_overshoot),
-            bounces,
-            r(- bounces*(ymax))
-            # r(- bounces*(ymax - ball.h))
-        ])
 
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -224,15 +221,18 @@ class Field:
 
     BALL_R = 2
     BALL_DX = 1 # 0.5
-    BALL_DY_MAX = 4 # 2
+    BALL_DY_MAX = 2
 
     SCORE_TO_WIN = 5
 
-    WAIT_SECONDS = 3
+    WAIT_SECONDS = 3 # 0 # 3
+
+    NPC_MISTAKE_CHANCE = 0.2
+
 
     def __init__(self, h, w):
-        self.h = h - 1 # substract 1 from dimensions to account for borders
-        self.w = w - 1
+        self.h = h - 2 # substract 2 from dimensions to account for borders
+        self.w = w - 2
         self.score0 = 0
         self.score1 = 0
 
@@ -244,17 +244,16 @@ class Field:
 
         self.p0_x = self.PAD_X
         self.p1_x = self.w - (self.PAD_X + self.PAD_W)
-
-        self._player0 = NPCPredictiveAI(self.PAD_H, self.PAD_W, self)
-        self._player0.set_pos( 5, self.p0_x)
-
-        self._player1 = NPCPredictiveAI(self.PAD_H, self.PAD_W, self)
-        self._player1.set_pos( 5, self.p1_x)
+        y_players = (self.h - self.PAD_H) // 2
 
         self._ball = Ball(self.BALL_R, self.BALL_R, self)
-        self._next_round()
-
+        self._player0 = NPCPredictiveAI(self.PAD_H, self.PAD_W, self)
+        self._player1 = NPCPredictiveAI(self.PAD_H, self.PAD_W, self)
         self._overlay = Overlay()
+
+        self._player0.set_pos(y_players, self.p0_x)
+        self._player1.set_pos(y_players, self.p1_x)
+        self._next_round()
 
 
 
@@ -291,13 +290,11 @@ class Field:
         self._overlay_num = 0
 
     def update(self):
-
-
-        boundaries_pad = (1, 1,
+        boundaries_pad = (0, 0,
             self.h - (self.PAD_H),
             self.w - (self.PAD_W)
         )
-        boundaries_ball = (1, 1,
+        boundaries_ball = (0, 0,
             self.h - (self.BALL_R),
             self.w - (self.BALL_R)
         )
@@ -358,16 +355,24 @@ class TUI(prisma.Terminal):
         self.canvas = self.root.create_child(-3, 1.0, 2, 0)
         self.field = None
 
+        self.start_screen = True
+
     # --------------------------------------------------------------------------
     def on_update(self):
+        # if self.start_screen:
+        #     self.draw_text('c','c', "Enter")
+        #     if self.char == 10:
+        #         self.field = Field(*self.canvas.get_size())
+        #         self.start_screen = False
+        #     return
         if self.field is None:
             self.field = Field(*self.canvas.get_size())
 
         self.field.handle_input(self.char)
         self.field.update()
 
-        self.canvas.draw_layer(0,0,self.field.get_matrix())
         self.canvas.draw_border()
+        self.canvas.draw_layer(1,1,self.field.get_matrix())
 
         score_y = max(0, self.canvas.y - 2)
 
@@ -375,11 +380,6 @@ class TUI(prisma.Terminal):
         self.draw_text(score_y+1, 'c', f"{self.field.score0} : {self.field.score1}")
         self.draw_text('b','r', f"({self.h} {self.w}", prisma.A_REVERSE)
         self.draw_text('b','l', f"Press F1 to exit (current key: {self.char})", prisma.get_color_pair(1))
-
-        d0 = self.field._player0.debug
-        d1 = self.field._player1.debug
-        self.draw_text(0,0, f"{d0}", blend = prisma.BlendMode.OVERWRITE)
-        self.draw_text(1,0, f"{d1}", blend = prisma.BlendMode.OVERWRITE)
 
 
     # --------------------------------------------------------------------------
@@ -391,7 +391,7 @@ class TUI(prisma.Terminal):
 if __name__ == "__main__":
     np.random.seed(0)
     tui = TUI()
-    tui.run(fps = 10)
+    tui.run(fps = 60)
 
 
 ################################################################################
