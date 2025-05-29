@@ -72,8 +72,9 @@ class TUI(prisma.Terminal):
         self.canvas.draw_layer(*self.box_1.get_data())
 
         y, x, _ = self.box_0.get_data()
+        self.draw_text('b','l', f"Press F1 to exit", prisma.get_color_pair(1))
+        self.draw_text('b-1','c', "Use arrow keys or WASD to move the white box")
         self.draw_text('b','r', f"({y}, {x}) {self.h} {self.w}", prisma.A_REVERSE)
-        self.draw_text('b','l', f"Press F1 to exit (current key: {self.char})", prisma.get_color_pair(1))
 
     # --------------------------------------------------------------------------
     def should_stop(self):

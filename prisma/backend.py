@@ -3,43 +3,70 @@ from abc import ABC, abstractmethod
 # //////////////////////////////////////////////////////////////////////////////
 class Backend(ABC):
     @abstractmethod
-    def set_nodelay(self, boolean: bool) -> None: pass
+    def set_nodelay(self, boolean: bool) -> None:
+        """Set the nodelay mode for the backend. When enabled, get_key() will not block the terminal."""
+        pass
 
     @abstractmethod
-    def sleep(self, ms: int) -> None: pass
+    def sleep(self, ms: int) -> None:
+        """Sleep for a given number of milliseconds."""
+        pass
 
     @abstractmethod
-    def write_text(self, y: int, x: int, chars: str, attr: int = 0) -> None: pass
+    def write_text(self, y: int, x: int, chars: str, attr: int = 0) -> None:
+        """Write text to the terminal at a specific position."""
+        pass
 
     @abstractmethod
-    def get_size(self, update = False) -> tuple[int,int]: pass
+    def get_size(self, update = False) -> tuple[int,int]:
+        """Get the size of the terminal, as (COLS, LINES).
+        If update is True, a backend method will be called to update the current COLS and LINES values."""
+        pass
 
     @abstractmethod
-    def supports_color(self) -> bool: pass
+    def supports_color(self) -> bool:
+        """Check if the backend supports color."""
+        pass
 
     @abstractmethod
-    def init_color(self, i: int, r: int, g: int, b: int) -> None: pass
+    def init_color(self, i: int, r: int, g: int, b: int) -> None:
+        """Initialize a color with index 'i' and values 'r','g','b' to be used in color pairs by the terminal."""
+        pass
 
     @abstractmethod
-    def init_pair(self, i: int, fg: int, bg: int) -> None: pass
+    def init_pair(self, i: int, fg: int, bg: int) -> None:
+        """Initialize a color pair (fg,bg) which can be accessed with index 'i'."""
+        pass
 
     @abstractmethod
-    def get_color_pair(self, i: int) -> int: pass
+    def get_color_pair(self, i: int) -> int:
+        """Retrieve the color pair for a given index."""
+        pass
 
     @abstractmethod
-    def _start(self) -> None: pass
+    def _start(self) -> None:
+        """Initialize the backend, setting up the terminal."""
+        pass
 
     @abstractmethod
-    def _end(self) -> None: pass
+    def _end(self) -> None:
+        """Clean up the backend, restoring the terminal to its original state."""
+        pass
 
     @abstractmethod
-    def _refresh(self) -> None: pass
+    def _refresh(self) -> None:
+        """Refresh the terminal display."""
+        pass
 
     @abstractmethod
-    def _get_key(self) -> int: pass
+    def _get_key(self) -> int:
+        """Get a key press from the terminal."""
+        pass
 
     @abstractmethod
-    def _resize(self, h: int, w: int) -> None: pass
+    def _resize(self, h: int, w: int) -> None:
+        """Resize the terminal to the given height and width."""
+        pass
 
 
 # //////////////////////////////////////////////////////////////////////////////
