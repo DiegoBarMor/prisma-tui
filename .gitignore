@@ -4,6 +4,8 @@ desktop.ini
 logs/
 temp/
 build/
+dist/
 *egg-info/
-build.sh
 debug.sh
+build.sh
+upload.sh

@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="prisma-tui",
-    version="0.1.0",
+    version="0.1.1",
     description="A TUI framework based on the idea of \"multi-layered transparency\" composition.",
     keywords="tui terminal user interface transparency layers layered curses",
     long_description=open("README.md").read(),
