@@ -1,10 +1,10 @@
-import prisma
+import prismatui as pr
 
 # //////////////////////////////////////////////////////////////////////////////
 class Box:
     def __init__(self, size, char, attr):
         self.size = size
-        self.layer = prisma.Layer(
+        self.layer = pr.Layer(
             size, size,
             chars = [[char for _ in range(size)] for _ in range(size)],
             attrs = [[attr for _ in range(size)] for _ in range(size)]
@@ -43,13 +43,13 @@ class BoxAutonomous(Box):
 
 
 # //////////////////////////////////////////////////////////////////////////////
-class TUI(prisma.Terminal):
+class TUI(pr.Terminal):
     def on_start(self):
-        prisma.init_pair(1, prisma.COLOR_BLACK, prisma.COLOR_CYAN)
+        pr.init_pair(1, pr.COLOR_BLACK, pr.COLOR_CYAN)
 
         size = 5
-        self.box_0 = Box(size, '#', prisma.A_BOLD)
-        self.box_1 = BoxAutonomous(size, '*', prisma.A_DIM)
+        self.box_0 = Box(size, '#', pr.A_BOLD)
+        self.box_1 = BoxAutonomous(size, '*', pr.A_DIM)
 
         self.box_0.set_pos(self.h // 2, (self.w - size) // 2)
         self.box_1.set_vel(1, 1)
@@ -59,10 +59,10 @@ class TUI(prisma.Terminal):
     # --------------------------------------------------------------------------
     def on_update(self):
         match self.key:
-            case 119 | prisma.KEY_UP:    self.box_0.set_vel(-1,  0)
-            case 97  | prisma.KEY_LEFT:  self.box_0.set_vel( 0, -1)
-            case 115 | prisma.KEY_DOWN:  self.box_0.set_vel( 1,  0)
-            case 100 | prisma.KEY_RIGHT: self.box_0.set_vel( 0,  1)
+            case 119 | pr.KEY_UP:    self.box_0.set_vel(-1,  0)
+            case 97  | pr.KEY_LEFT:  self.box_0.set_vel( 0, -1)
+            case 115 | pr.KEY_DOWN:  self.box_0.set_vel( 1,  0)
+            case 100 | pr.KEY_RIGHT: self.box_0.set_vel( 0,  1)
             case _: self.box_0.set_vel(0, 0)
 
         self.box_0.move(self.h, self.w)
@@ -72,13 +72,13 @@ class TUI(prisma.Terminal):
         self.canvas.draw_layer(*self.box_1.get_data())
 
         y, x, _ = self.box_0.get_data()
-        self.draw_text('b','l', f"Press F1 to exit", prisma.get_color_pair(1))
+        self.draw_text('b','l', f"Press F1 to exit", pr.get_color_pair(1))
         self.draw_text('b-1','c', "Use arrow keys or WASD to move the white box")
-        self.draw_text('b','r', f"({y}, {x}) {self.h} {self.w}", prisma.A_REVERSE)
+        self.draw_text('b','r', f"({y}, {x}) {self.h} {self.w}", pr.A_REVERSE)
 
     # --------------------------------------------------------------------------
     def should_stop(self):
-        return self.key == prisma.KEY_F1
+        return self.key == pr.KEY_F1
 
 
 ################################################################################

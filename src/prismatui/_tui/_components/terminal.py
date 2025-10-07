@@ -1,16 +1,16 @@
-import prisma
+import prismatui as pr
 
 # //////////////////////////////////////////////////////////////////////////////
 class Terminal:
     """The Terminal class is the main entry point for creating a TUI application.
-    It manages the terminal size, input handling, and rendering of sections and graphics.
+    It manages the terminal size, input handling, rendering of sections and color palette.
     It handles application lifecycle events such as start, resize, update and end."""
     def __init__(self):
         self.h: int = 0
         self.w: int = 0
         self.key: int = -1
-        self.root: prisma.Section
-        self.graphics: prisma.Graphics
+        self.root: pr.Section
+        self.palette: pr.Palette
 
         self._no_delay: bool = False
         self._nap_ms: int = 0
@@ -27,14 +27,14 @@ class Terminal:
         between frames to reach the indicated frame rate."""
         self.set_fps(fps)
         try:
-            prisma._BACKEND._start()
+            pr._CURRENT_BACKEND._start()
             self._on_start()
             while self._running:
                 self._on_resize()
                 self._on_update()
             self._on_end()
         finally:
-            prisma._BACKEND._end()
+            pr._CURRENT_BACKEND._end()
 
     # --------------------------------------------------------------------------
     def stop(self) -> None:
@@ -45,13 +45,13 @@ class Terminal:
     def fetch_key(self) -> int:
         """Fetch the next key from the terminal input.
         This method will block until a key is pressed, unless the terminal is in no-delay mode."""
-        self.key = prisma._BACKEND._get_key()
+        self.key = pr._CURRENT_BACKEND._get_key()
         return self.key
 
     # --------------------------------------------------------------------------
     def exhaust_keys(self) -> None:
         """Exhaust all keys from the terminal input buffer.
-        Attention: calling to fetch_key()->prisma._BACKEND._get_key() internally rellies on stdscr.getch(),
+        Attention: calling to fetch_key()->prisma._CURRENT_BACKEND._get_key() internally rellies on stdscr.getch(),
         so this method will block the terminal when fps=0 (i.e. outside no-delay mode)."""
         while self.fetch_key() != -1:
             pass
@@ -70,7 +70,7 @@ class Terminal:
         else:
             self._no_delay = True
             self._nap_ms = int(1000 / fps)
-            self._wait = lambda: prisma._BACKEND.sleep(self._nap_ms)
+            self._wait = lambda: pr._CURRENT_BACKEND.sleep(self._nap_ms)
 
     # --------------------------------------------------------------------------
     def get_size(self) -> tuple[int, int]:
@@ -83,14 +83,14 @@ class Terminal:
         print(f"\x1b[8;{h};{w}t")
 
     # --------------------------------------------------------------------------
-    def draw_layer(self, y: int | str, x: int | str, layer: "prisma.Layer") -> None:
+    def draw_layer(self, y: int | str, x: int | str, layer: "pr.Layer") -> None:
         """Draw another layer onto the top layer of the root section, at the specified coordinates."""
         self.root.draw_layer(y, x, layer)
 
     # --------------------------------------------------------------------------
     def draw_text(self,
         y: int | str, x: int | str, string,
-        attr: int = None, blend = prisma.BlendMode.OVERLAY,
+        attr: int = None, blend = pr.BlendMode.OVERLAY,
         cut: dict[str, str] = {}
     ) -> None:
         """Draw a string on the top layer of the root section, at the specified coordinates with optional attributes and blending mode."""
@@ -101,7 +101,7 @@ class Terminal:
     def draw_border(self,
         ls = '│', rs = '│', ts = '─', bs = '─',
         tl = '┌', tr = '┐', bl = '└', br = '┘',
-        attr = None, blend = prisma.BlendMode.OVERLAY
+        attr = None, blend = pr.BlendMode.OVERLAY
     ) -> None:
         """Draw a border around the top layer of the root section with specified characters and attribute."""
         self.root.draw_border(ls, rs, ts, bs, tl, tr, bl, br, attr, blend)
@@ -142,11 +142,11 @@ class Terminal:
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _on_start(self) -> None:
         """Internal method called when the terminal application starts.
-        It initializes the terminal size, root section, graphics
+        It initializes the terminal size, root section, palette
         and sets the backend to no-delay mode or not, according to the provided fps."""
-        self.root = prisma.Section()
-        self.graphics = prisma.Graphics()
-        prisma._BACKEND.set_nodelay(self._no_delay)
+        self.root = pr.Section()
+        self.palette = pr.Palette()
+        pr._CURRENT_BACKEND.set_nodelay(self._no_delay)
 
         self._running = True
         self.on_start()
@@ -154,13 +154,13 @@ class Terminal:
     # --------------------------------------------------------------------------
     def _on_resize(self) -> None:
         """Internal method called when the terminal is resized."""
-        h,w = prisma._BACKEND.get_size(update = True)
+        h,w = pr._CURRENT_BACKEND.get_size(update = True)
 
         if (self.h == h) and (self.w == w): return
 
         self.h = h; self.w = w
         self.root.update_size()
-        prisma._BACKEND._resize(self.h, self.w)
+        pr._CURRENT_BACKEND._resize(self.h, self.w)
         self.on_resize()
 
     # --------------------------------------------------------------------------
@@ -172,7 +172,7 @@ class Terminal:
         self.on_update()
         self._render()
 
-        self.key = prisma._BACKEND._get_key()
+        self.key = pr._CURRENT_BACKEND._get_key()
         if self.should_stop(): self.stop()
         self._wait()
 
@@ -186,16 +186,16 @@ class Terminal:
     def _render(self) -> None:
         """Render the current state of the terminal by aggregating all layers
         and writing the rendered data to the terminal backend."""
-        master_layer = prisma.Layer(self.h, self.w)
+        master_layer = pr.Layer(self.h, self.w)
         self.root.aggregate_layers(master_layer)
 
         idx = 0
         for chars,attr in master_layer.yield_render_data():
             y,x = divmod(idx, self.w)
-            prisma._BACKEND.write_text(y, x, chars, attr)
+            pr._CURRENT_BACKEND.write_text(y, x, chars, attr)
             idx += len(chars)
 
-        prisma._BACKEND._refresh()
+        pr._CURRENT_BACKEND._refresh()
 
 
 # //////////////////////////////////////////////////////////////////////////////

@@ -1,10 +1,10 @@
-import prisma
+import prismatui as pr
 
 # //////////////////////////////////////////////////////////////////////////////
-class TUI(prisma.Terminal):
+class TUI(pr.Terminal):
     def on_start(self):
-        prisma.init_pair(1, prisma.COLOR_BLACK, prisma.COLOR_CYAN)
-        prisma.init_pair(2, prisma.COLOR_BLACK, prisma.COLOR_YELLOW)
+        pr.init_pair(1, pr.COLOR_BLACK, pr.COLOR_CYAN)
+        pr.init_pair(2, pr.COLOR_BLACK, pr.COLOR_YELLOW)
 
         self.names = ["canvas", "tpanel", "bpanel", "lpanel", "rpanel"]
 
@@ -25,10 +25,10 @@ class TUI(prisma.Terminal):
     def on_update(self):
         h,w = self.root.get_size()
         match self.key:
-            case prisma.KEY_UP:    self.resize_terminal(h-1, w  )
-            case prisma.KEY_LEFT:  self.resize_terminal(h  , w-1)
-            case prisma.KEY_DOWN:  self.resize_terminal(h+1, w  )
-            case prisma.KEY_RIGHT: self.resize_terminal(h  , w+1)
+            case pr.KEY_UP:    self.resize_terminal(h-1, w  )
+            case pr.KEY_LEFT:  self.resize_terminal(h  , w-1)
+            case pr.KEY_DOWN:  self.resize_terminal(h+1, w  )
+            case pr.KEY_RIGHT: self.resize_terminal(h  , w+1)
 
 
         for name,sect in zip(self.names, self.canvas.iter_children()):
@@ -45,13 +45,13 @@ class TUI(prisma.Terminal):
         for sect in self.canvas.iter_children():
             sect.draw_border()
 
-        self.bpanel.draw_text('t','l', "Resize the screen with the arrow keys", prisma.get_color_pair(1), prisma.BlendMode.OVERWRITE)
-        self.bpanel.draw_text('t+1','l', "Press F1 to exit", prisma.get_color_pair(1), prisma.BlendMode.OVERWRITE)
-        self.bpanel.draw_text('t+1','r', f"{self.h} {self.w}", prisma.A_REVERSE, prisma.BlendMode.OVERWRITE)
+        self.bpanel.draw_text('t','l', "Resize the screen with the arrow keys", pr.get_color_pair(1), pr.BlendMode.OVERWRITE)
+        self.bpanel.draw_text('t+1','l', "Press F1 to exit", pr.get_color_pair(1), pr.BlendMode.OVERWRITE)
+        self.bpanel.draw_text('t+1','r', f"{self.h} {self.w}", pr.A_REVERSE, pr.BlendMode.OVERWRITE)
 
     # --------------------------------------------------------------------------
     def should_stop(self):
-        return self.key == prisma.KEY_F1
+        return self.key == pr.KEY_F1
 
 
 ################################################################################

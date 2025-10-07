@@ -1,9 +1,9 @@
-import prisma
+import prismatui as pr
 
 # //////////////////////////////////////////////////////////////////////////////
 class Pixel:
     """A Pixel objects is a container for a single character with an associated attribute."""
-    def __init__(self, char = prisma.BLANK_CHAR, attr = prisma.BLANK_ATTR):
+    def __init__(self, char = pr.BLANK_CHAR, attr = pr.BLANK_ATTR):
         self._char = char
         self._attr = attr
 
@@ -31,7 +31,7 @@ class Pixel:
     def _is_blank(self) -> bool:
         """A pixel is considered to be "blank" when BOTH its character and attribute
         are set to their blank values."""
-        return (self._char == prisma.BLANK_CHAR) and (self._attr == prisma.BLANK_ATTR)
+        return (self._char == pr.BLANK_CHAR) and (self._attr == pr.BLANK_ATTR)
 
 
 # //////////////////////////////////////////////////////////////////////////////

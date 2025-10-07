@@ -1,5 +1,6 @@
-import prisma
 from typing import Generator
+
+import prismatui as pr
 
 # //////////////////////////////////////////////////////////////////////////////
 class Section:
@@ -19,7 +20,7 @@ class Section:
         self._update_dimensions()
 
         self._children: list["Section"] = []
-        self._layers = [prisma.Layer(self.h, self.w)]
+        self._layers = [pr.Layer(self.h, self.w)]
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -44,9 +45,9 @@ class Section:
         return child
 
     # --------------------------------------------------------------------------
-    def create_layer(self) -> "prisma.Layer":
+    def create_layer(self) -> "pr.Layer":
         """Create a new layer in this section."""
-        layer = prisma.Layer(self.h, self.w)
+        layer = pr.Layer(self.h, self.w)
         self._layers.append(layer)
         return layer
 
@@ -56,7 +57,7 @@ class Section:
         string, where each character represents a section. Takes inspiration
         from matplotlib's `subplot_mosaic` function."""
         section_dict = {}
-        for char, hwyx in prisma.utils.mosaic(layout, divider).items():
+        for char, hwyx in pr.mosaic_parser(layout, divider).items():
             section = self.create_child(*hwyx)
             section_dict[char] = section
         return section_dict
@@ -73,12 +74,12 @@ class Section:
         return self.y, self.x
 
     # --------------------------------------------------------------------------
-    def get_bottom_layer(self) -> "prisma.Layer":
+    def get_bottom_layer(self) -> "pr.Layer":
         """Get the bottom layer of this section."""
         return self._layers[0]
 
     # --------------------------------------------------------------------------
-    def get_top_layer(self) -> "prisma.Layer":
+    def get_top_layer(self) -> "pr.Layer":
         """Get the top layer of this section."""
         return self._layers[-1]
 
@@ -89,7 +90,7 @@ class Section:
         return iter(self._children)
 
     # --------------------------------------------------------------------------
-    def iter_layers(self) -> Generator["prisma.Layer", None, None]:
+    def iter_layers(self) -> Generator["pr.Layer", None, None]:
         """Iterate over the layers of this section."""
         return iter(self._layers)
 
@@ -103,7 +104,7 @@ class Section:
             child.clear()
 
     # --------------------------------------------------------------------------
-    def aggregate_layers(self, agg_layer: "prisma.Layer") -> None:
+    def aggregate_layers(self, agg_layer: "pr.Layer") -> None:
         """Aggregate all layers and child sections into the provided aggregate layer."""
         for layer in self.iter_layers():
             agg_layer.draw_layer(self.y, self.x, layer)
@@ -124,14 +125,19 @@ class Section:
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def draw_layer(self, y: int | str, x: int | str, layer: "prisma.Layer") -> None:
+    def draw_layer(self, y: int | str, x: int | str, layer: "pr.Layer") -> None:
         """Draw another layer onto the top layer of this section, at the specified coordinates."""
         self.get_top_layer().draw_layer(y, x, layer)
+
+
+    # --------------------------------------------------------------------------
+    def draw_matrix(self, y: int | str, x: int | str, chars: list[str], attrs: list[list[int]], blend = pr.BlendMode.OVERLAY) -> None:
+        self.get_top_layer().draw_matrix(y, x, chars, attrs, blend)
 
     # --------------------------------------------------------------------------
     def draw_text(self,
         y: int | str, x: int | str, string,
-        attr: int = None, blend = prisma.BlendMode.OVERLAY,
+        attr: int = None, blend = pr.BlendMode.OVERLAY,
         cut: dict[str, str] = {}
     ) -> None:
         """Draw a string on the top layer of this section, at the specified coordinates with optional attributes and blending mode."""
@@ -141,7 +147,7 @@ class Section:
     def draw_border(self,
         ls = '│', rs = '│', ts = '─', bs = '─',
         tl = '┌', tr = '┐', bl = '└', br = '┘',
-        attr = None, blend = prisma.BlendMode.OVERLAY
+        attr = None, blend = pr.BlendMode.OVERLAY
     ) -> None:
         """Draw a border around the top layer of this section with specified characters and attribute."""
         self.get_top_layer().draw_border(ls, rs, ts, bs, tl, tr, bl, br, attr, blend)
@@ -151,7 +157,7 @@ class Section:
     def _update_dimensions(self) -> None:
         """Update the dimensions of this section based on its relative size and position."""
         if self._parent is None: # root section
-            self.h, self.w = prisma._BACKEND.get_size()
+            self.h, self.w = pr._CURRENT_BACKEND.get_size()
             self.y, self.x = 0, 0
             return
 

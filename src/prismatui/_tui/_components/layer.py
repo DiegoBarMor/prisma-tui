@@ -1,14 +1,6 @@
-import prisma
-from enum import Enum, auto
 from typing import Generator
 
-# //////////////////////////////////////////////////////////////////////////////
-class BlendMode(Enum):
-    """Enum for layer blending modes. Defines how layers are blended when drawn."""
-    OVERLAY = auto() # Default blending mode, overlays the layer on top of the existing pixels.
-    OVERWRITE = auto() # Overwrites the existing pixels with the new layer's pixels.
-    MERGE_ATTR = auto() # Merges the attributes of the new layer with the existing pixels, preserving the characters.
-
+import prismatui as pr
 
 # //////////////////////////////////////////////////////////////////////////////
 class Layer:
@@ -17,22 +9,22 @@ class Layer:
         h: int, w: int,
         chars: list[str] = None,
         attrs: list[list[int]] = None,
-        blend = BlendMode.OVERLAY
+        blend = pr.BlendMode.OVERLAY
     ):
-        if chars is None: chars = ((prisma.BLANK_CHAR for _ in range(w)) for _ in range(h))
-        if attrs is None: attrs = ((prisma.BLANK_ATTR for _ in range(w)) for _ in range(h))
+        if chars is None: chars = ((pr.BLANK_CHAR for _ in range(w)) for _ in range(h))
+        if attrs is None: attrs = ((pr.BLANK_ATTR for _ in range(w)) for _ in range(h))
         self.h: int = h
         self.w: int = w
-        self._data: list[list[prisma.Pixel]] = self.get_pixel_mat(chars, attrs)
-        self.blend_mode: BlendMode = blend
+        self._data: list[list[pr.Pixel]] = self.get_pixel_mat(chars, attrs)
+        self.blend_mode: pr.BlendMode = blend
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     @classmethod
-    def get_pixel_mat(cls, chars: list[str], attrs: list[list[int]]) -> list[list["prisma.Pixel"]]:
+    def get_pixel_mat(cls, chars: list[str], attrs: list[list[int]]) -> list[list["pr.Pixel"]]:
         """Create a pixel matrix from a matrix of characters and a matrix of attributes."""
         return [
-            [prisma.Pixel(c,a) for c,a in zip(row_chars, row_attrs)]
+            [pr.Pixel(c,a) for c,a in zip(row_chars, row_attrs)]
             for row_chars, row_attrs in zip(chars, attrs)
         ]
 
@@ -85,16 +77,21 @@ class Layer:
         self._stamp(y, x, layer._data, layer.blend_mode)
 
     # --------------------------------------------------------------------------
+    def draw_matrix(self, y: int | str, x: int | str, chars: list[str], attrs: list[list[int]], blend = pr.BlendMode.OVERLAY) -> None:
+        data = self.get_pixel_mat(chars, attrs)
+        self._stamp(y, x, data, blend)
+
+    # --------------------------------------------------------------------------
     def draw_text(self,
         y: int | str,  # Can be an integer or a string indicating position (e.g., 'T', 'C', 'B')
         x: int | str,  # Can be an integer or a string indicating position (e.g., 'L', 'C', 'R')
         string, # Accepts any object that can be converted to a string
         attr: int = None,
-        blend = BlendMode.OVERLAY,
+        blend = pr.BlendMode.OVERLAY,
         cut: dict[str, str] = {} # Cut dictionary to specify which edges to cut (e.g., {'T': 1, 'B': 2})
     ) -> None:
         """Draw a string at the specified coordinates with optional attributes and blending mode."""
-        if attr is None: attr = prisma.BLANK_ATTR
+        if attr is None: attr = pr.BLANK_ATTR
 
         rows = str(string).split('\n')
         h = min(len(rows), self.h)
@@ -103,7 +100,7 @@ class Layer:
         y, x = self._parse_coords(h, w, y, x)
         if (x >= self.w) or (y >= self.h): return
 
-        chars = [row.ljust(w, prisma.BLANK_CHAR)[:w] for row in rows[:h]]
+        chars = [row.ljust(w, pr.BLANK_CHAR)[:w] for row in rows[:h]]
         chars = self._parse_cut(y, x, cut, chars)
         attrs = [[attr for _ in row] for row in chars]
         data = self.get_pixel_mat(chars, attrs)
@@ -113,15 +110,15 @@ class Layer:
     def draw_border(self,
         ls = '│', rs = '│', ts = '─', bs = '─',
         tl = '┌', tr = '┐', bl = '└', br = '┘',
-        attr = None, blend = BlendMode.OVERLAY
+        attr = None, blend = pr.BlendMode.OVERLAY
     ) -> None:
         """Draw a border around the layer with specified characters and attribute."""
-        if attr is None: attr = prisma.BLANK_ATTR
+        if attr is None: attr = pr.BLANK_ATTR
 
         h = self.h - 2
         w = self.w - 2
-        BC = prisma.BLANK_CHAR
-        BA = prisma.BLANK_ATTR
+        BC = pr.BLANK_CHAR
+        BA = pr.BLANK_ATTR
         data = self.get_pixel_mat(
             chars = \
                 [tl + ts*w + tr]   +\
@@ -193,17 +190,17 @@ class Layer:
     # --------------------------------------------------------------------------
     def _stamp(self,
         y: int, x: int,
-        data: list[list["prisma.Pixel"]],
-        blend = BlendMode.OVERLAY
+        data: list[list["pr.Pixel"]],
+        blend = pr.BlendMode.OVERLAY
     ) -> None:
         """Stamp a matrix of pixels onto the layer at the specified coordinates."""
         if (y >= self.h) or (x >= self.w): return
         if not len(data): return
 
         match blend:
-            case BlendMode.OVERLAY:    func = prisma.Pixel.overlay
-            case BlendMode.OVERWRITE:  func = prisma.Pixel.overwrite
-            case BlendMode.MERGE_ATTR: func = prisma.Pixel.merge_attr
+            case pr.BlendMode.OVERLAY:    func = pr.Pixel.overlay
+            case pr.BlendMode.OVERWRITE:  func = pr.Pixel.overwrite
+            case pr.BlendMode.MERGE_ATTR: func = pr.Pixel.merge_attr
             case _ : raise ValueError(f"Unknown blend_mode: {blend}")
 
         h = len(data)
@@ -225,9 +222,9 @@ class Layer:
 
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    def _create_row(self, length: int) -> list["prisma.Pixel"]:
+    def _create_row(self, length: int) -> list["pr.Pixel"]:
         """Create a row of pixels with the specified length, initialized to blank."""
-        return [prisma.Pixel() for _ in range(length)]
+        return [pr.Pixel() for _ in range(length)]
 
     # --------------------------------------------------------------------------
     def _add_rows(self, n: int) -> None:
