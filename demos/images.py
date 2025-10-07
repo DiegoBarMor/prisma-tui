@@ -1,5 +1,44 @@
+import random
+
+from _mods.allow_root_imports import *
 import prismatui as pr
-import numpy as np
+
+# --------------------------------------------------------------------------
+def get_noise_matrices(shape):
+    """
+    Returns matrices for a noise layer. Allows for both list and numpy array implementations.
+    Output isn't quite the same but appropriate enough for demo purposes.
+    Note that prismatui itself does not depend on numpy, but can handle both np arrays or list of lists for representing matrices.
+    """
+
+    try:
+        import numpy as np
+
+    except ImportError:
+        def rnd(): return random.random() < 0.2
+        def create_matrix(h, w, func): return [[func() for _ in range(w)] for _ in range(h)]
+
+        h,w = shape
+        chars_noise_0 = create_matrix(h, w, lambda: '.' if rnd() else ' ')
+        chars_noise_1 = create_matrix(h, w, lambda: '`' if rnd() else ' ')
+        attrs_noise_0 = create_matrix(h, w, lambda: pr.A_BOLD if rnd() else pr.A_NORMAL)
+        attrs_noise_1 = create_matrix(h, w, lambda: pr.A_DIM if rnd() else pr.A_NORMAL)
+
+    else:
+        chars_noise_0 = np.full(shape, ' ', dtype = "U1")
+        chars_noise_1 = np.full(shape, ' ', dtype = "U1")
+        attrs_noise_0 = np.full(shape, pr.A_NORMAL, dtype = int)
+        attrs_noise_1 = np.full(shape, pr.A_NORMAL, dtype = int)
+
+        noise_0 = np.random.random(shape) < 0.2
+        noise_1 = np.random.random(shape) < 0.2
+        chars_noise_0[noise_0] = '.'
+        chars_noise_1[noise_1] = '`'
+        attrs_noise_0[noise_0] = pr.A_BOLD
+        attrs_noise_1[noise_1] = pr.A_DIM
+
+    return chars_noise_0, chars_noise_1, attrs_noise_0, attrs_noise_1
+
 
 # //////////////////////////////////////////////////////////////////////////////
 class TUI(pr.Terminal):
@@ -13,17 +52,7 @@ class TUI(pr.Terminal):
         self.txt = self.root.create_layer()
 
         shape = pr.get_size()
-        chars_noise_0 = np.full(shape, ' ', dtype = "U1")
-        chars_noise_1 = np.full(shape, ' ', dtype = "U1")
-        attrs_noise_0 = np.full(shape, pr.A_NORMAL, dtype = int)
-        attrs_noise_1 = np.full(shape, pr.A_NORMAL, dtype = int)
-
-        noise_0 = np.random.random(shape) < 0.2
-        noise_1 = np.random.random(shape) < 0.2
-        chars_noise_0[noise_0] = '.'
-        chars_noise_1[noise_1] = '`'
-        attrs_noise_0[noise_0] = pr.A_BOLD
-        attrs_noise_1[noise_1] = pr.A_DIM
+        chars_noise_0, chars_noise_1, attrs_noise_0, attrs_noise_1 = get_noise_matrices(shape)
 
         self.layer_noise_0 = pr.Layer(*shape, chars_noise_0, attrs_noise_0)
         self.layer_noise_1 = pr.Layer(*shape, chars_noise_1, attrs_noise_1)
@@ -46,7 +75,7 @@ class TUI(pr.Terminal):
 
 ################################################################################
 if __name__ == "__main__":
-    np.random.seed(0)
+    random.seed(0)
     tui = TUI()
     tui.run()
 

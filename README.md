@@ -5,7 +5,7 @@
 
 <p align="center">
   <img src="logo.png" alt="Prisma TUI Logo" width="200"/><br>
-  Rendition of <i>Prisma, the cat</i>.
+  <i>Prisma, the cat</i>, as rendered by prisma-tui.
 </p>
 
 
