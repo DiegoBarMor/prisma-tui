@@ -3,7 +3,7 @@ from ._tui._backend.backend_curses import BackendCurses
 from ._tui._backend.constants import *
 
 # --------------------------------------------------------------------------
-_CURRENT_BACKEND: Backend = BackendCurses()
+_CURRENT_BACKEND: "Backend | None" = None
 BLANK_CHAR = ' '
 BLANK_ATTR = A_NORMAL
 
@@ -73,3 +73,4 @@ def get_color_pair(i: int) -> int:
 
 
 # --------------------------------------------------------------------------
+set_backend("curses")

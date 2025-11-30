@@ -8,6 +8,7 @@ class BackendCurses(pr.Backend):
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def set_nodelay(self, boolean: bool) -> None:
         self.stdscr.nodelay(boolean)
+        self._nodelay_mode = boolean
 
     # --------------------------------------------------------------------------
     def sleep(self, ms: int) -> None:
@@ -67,11 +68,21 @@ class BackendCurses(pr.Backend):
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     def _refresh(self) -> None:
-        return # unnecessary, as stdscr.refresh() gets implicitly called by stdscr.getkey()
+        return # unnecessary for curses, as stdscr.refresh() gets implicitly called by stdscr.getkey()
 
     # --------------------------------------------------------------------------
     def _get_key(self) -> int:
-        return self.stdscr.getch()
+        ### exhausting input buffer only makes sense in nodelay mode
+        if not self._nodelay_mode:
+            return self.stdscr.getch()
+
+        ### exhaust input buffer to avoid laggy "repeated" inputs in nodelay mode
+        this_char = pr.ERR
+        next_char = self.stdscr.getch()
+        while next_char != pr.ERR:
+            this_char = next_char
+            next_char = self.stdscr.getch()
+        return this_char
 
     # --------------------------------------------------------------------------
     def _resize(self, h: int, w: int) -> None:

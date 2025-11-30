@@ -75,7 +75,7 @@ class TUI(pr.Terminal):
         y, x, _ = self.box_0.get_data()
         self.draw_text('b','l', f"Press F1 to exit", pr.get_color_pair(1))
         self.draw_text('b-1','c', "Use arrow keys or WASD to move the white box")
-        self.draw_text('b','r', f"({y}, {x}) {self.h} {self.w}", pr.A_REVERSE)
+        self.draw_text('b','r', f"KEY={self.key} ({y}, {x}) {self.h} {self.w}", pr.A_REVERSE)
 
     # --------------------------------------------------------------------------
     def should_stop(self):
