@@ -12,3 +12,4 @@
 ## [0.2.1]
 - Attempted to reduce input lag by exhausting repeated keys in `BackendCurses._get_key`.
 - Palettes can now be loaded directly from a dictionary instead of a JSON file.
+- Package no longer nested inside a `src/` folder.
