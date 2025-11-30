@@ -31,8 +31,17 @@ class Palette:
     def load_pal(self, path_pal: str) -> None:
         """Load a palette from a JSON file."""
         with open(path_pal, 'r') as file:
-            self.palette = json.load(file)
+            palette_dict = json.load(file)
+        self.load_dict(palette_dict)
 
+    # --------------------------------------------------------------------------
+    def load_dict(self, palette_dict: dict[str, list[tuple]]) -> None:
+        """
+        Load a palette from a dictionary. It must contain 'colors' and 'pairs' keys.
+        Colors should be a list of (r,g,b) values in the range 0-1000.
+        Pairs should be a list of (fg,bg) indices.
+        """
+        self.palette = palette_dict.copy()
         colors = self.palette["colors"]
         pairs  = self.palette["pairs"]
 
